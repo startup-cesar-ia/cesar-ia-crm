@@ -9,11 +9,34 @@ import {
   getDoc,
   query,
   where,
+  orderBy,
+  limit,
+  startAfter,
   Timestamp,
   QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { Cliente, Agendamento, Tarefa, Transacao, Usuario } from '@/types'
+
+interface Paginado<T> {
+  itens: T[]
+  proximoCursor: QueryDocumentSnapshot | null
+}
+
+function basePaginado(
+  colecao: string,
+  usuarioId: string,
+  qtd: number,
+  cursor?: QueryDocumentSnapshot | null
+) {
+  const restricoes: unknown[] = [
+    where('usuarioId', '==', usuarioId),
+    orderBy('__name__', 'asc'),
+    limit(qtd),
+  ]
+  if (cursor) restricoes.push(startAfter(cursor))
+  return query(collection(db, colecao), ...restricoes)
+}
 
 function paraMillis(valor: unknown): number {
   if (!valor) return 0
@@ -207,4 +230,54 @@ export async function atualizarTransacao(
 export async function excluirTransacao(id: string) {
   const docRef = doc(db, 'transacoes', id)
   await deleteDoc(docRef)
+}
+
+// Paginação por cursor (lista os documentos na ordem padrão de __name__,
+// sem exigir índices compostos)
+export async function listarClientesPaginado(
+  usuarioId: string,
+  qtd = 20,
+  cursor?: QueryDocumentSnapshot | null
+): Promise<Paginado<Cliente>> {
+  const snapshot = await getDocs(basePaginado('clientes', usuarioId, qtd, cursor))
+  const itens = snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Cliente)
+    .sort((a, b) => paraMillis(b.criadoEm) - paraMillis(a.criadoEm))
+  return { itens, proximoCursor: snapshot.docs.at(-1) ?? null }
+}
+
+export async function listarAgendamentosPaginado(
+  usuarioId: string,
+  qtd = 20,
+  cursor?: QueryDocumentSnapshot | null
+): Promise<Paginado<Agendamento>> {
+  const snapshot = await getDocs(basePaginado('agendamentos', usuarioId, qtd, cursor))
+  const itens = snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Agendamento)
+    .sort((a, b) => paraMillis(b.data) - paraMillis(a.data))
+  return { itens, proximoCursor: snapshot.docs.at(-1) ?? null }
+}
+
+export async function listarTarefasPaginado(
+  usuarioId: string,
+  qtd = 20,
+  cursor?: QueryDocumentSnapshot | null
+): Promise<Paginado<Tarefa>> {
+  const snapshot = await getDocs(basePaginado('tarefas', usuarioId, qtd, cursor))
+  const itens = snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Tarefa)
+    .sort((a, b) => paraMillis(b.criadoEm) - paraMillis(a.criadoEm))
+  return { itens, proximoCursor: snapshot.docs.at(-1) ?? null }
+}
+
+export async function listarTransacoesPaginado(
+  usuarioId: string,
+  qtd = 20,
+  cursor?: QueryDocumentSnapshot | null
+): Promise<Paginado<Transacao>> {
+  const snapshot = await getDocs(basePaginado('transacoes', usuarioId, qtd, cursor))
+  const itens = snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Transacao)
+    .sort((a, b) => paraMillis(b.data) - paraMillis(a.data))
+  return { itens, proximoCursor: snapshot.docs.at(-1) ?? null }
 }

@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase'
 import {
-  listarTarefas,
+  listarTarefasPaginado,
   criarTarefa,
   atualizarTarefa,
   excluirTarefa,
   listarClientes,
 } from '@/lib/firebase-services'
-import { Timestamp } from 'firebase/firestore'
+import { Timestamp, QueryDocumentSnapshot } from 'firebase/firestore'
 import { Tarefa, Cliente } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Trash2, Edit, AlertCircle, Clock, CheckCircle } from 'lucide-react'
 import { formatarData } from '@/lib/date'
 import { combinaTexto, useSearch } from '@/lib/search-context'
+import { usePaginado } from '@/lib/use-paginado'
 
 type StatusKanban = 'backlog' | 'todo' | 'doing' | 'done'
 
@@ -42,32 +43,35 @@ const formVazio = {
 
 export default function TarefasPage() {
   const { query } = useSearch()
-  const [tarefas, setTarefas] = useState<Tarefa[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
-  const [carregando, setCarregando] = useState(true)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [excluindoId, setExcluindoId] = useState<string | null>(null)
   const [tarefaArrastando, setTarefaArrastando] = useState<string | null>(null)
   const [formData, setFormData] = useState(formVazio)
 
-  const carregarDados = async () => {
+  const {
+    itens: tarefas,
+    carregando,
+    temMais,
+    carregarPrimeira,
+    carregarMais,
+  } = usePaginado<Tarefa, QueryDocumentSnapshot>((qtd, cursor) => {
+    const user = auth.currentUser
+    if (!user) return Promise.resolve({ itens: [], proximoCursor: null })
+    return listarTarefasPaginado(user.uid, qtd, cursor)
+  })
+
+  const carregarClientes = async () => {
     const user = auth.currentUser
     if (!user) return
-
-    setCarregando(true)
-    const [tarefasData, clientesData] = await Promise.all([
-      listarTarefas(user.uid),
-      listarClientes(user.uid),
-    ])
-    setTarefas(tarefasData)
-    setClientes(clientesData)
-    setCarregando(false)
+    setClientes(await listarClientes(user.uid))
   }
 
   useEffect(() => {
-    carregarDados() // eslint-disable-line react-hooks/set-state-in-effect
-  }, [])
+    carregarPrimeira()
+    carregarClientes() // eslint-disable-line react-hooks/set-state-in-effect
+  }, [carregarPrimeira])
 
   const abrirNovo = () => {
     setEditandoId(null)
@@ -111,14 +115,14 @@ export default function TarefasPage() {
     setMostrarForm(false)
     setEditandoId(null)
     setFormData(formVazio)
-    carregarDados()
+    carregarPrimeira()
   }
 
   const confirmarExclusao = async () => {
     if (!excluindoId) return
     await excluirTarefa(excluindoId)
     setExcluindoId(null)
-    carregarDados()
+    carregarPrimeira()
   }
 
   const handleDragStart = (tarefaId: string) => {
@@ -134,7 +138,7 @@ export default function TarefasPage() {
     if (tarefaArrastando) {
       await atualizarTarefa(tarefaArrastando, { status: novoStatus })
       setTarefaArrastando(null)
-      carregarDados()
+      carregarPrimeira()
     }
   }
 
@@ -379,6 +383,14 @@ export default function TarefasPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {temMais && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" onClick={carregarMais} disabled={carregando}>
+            Carregar mais
+          </Button>
         </div>
       )}
 

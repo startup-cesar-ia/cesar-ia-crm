@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase'
 import {
-  listarAgendamentos,
+  listarAgendamentosPaginado,
   criarAgendamento,
   atualizarAgendamento,
   excluirAgendamento,
   listarClientes,
 } from '@/lib/firebase-services'
-import { Timestamp } from 'firebase/firestore'
+import { Timestamp, QueryDocumentSnapshot } from 'firebase/firestore'
 import { Agendamento, Cliente } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +24,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatarData } from '@/lib/date'
 import { combinaTexto, useSearch } from '@/lib/search-context'
+import { usePaginado } from '@/lib/use-paginado'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/style.css'
 
@@ -53,9 +54,7 @@ const formVazio = {
 
 export default function AgendamentosPage() {
   const { query } = useSearch()
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
-  const [carregando, setCarregando] = useState(true)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [excluindoId, setExcluindoId] = useState<string | null>(null)
@@ -63,23 +62,28 @@ export default function AgendamentosPage() {
   const [diaSelecionado, setDiaSelecionado] = useState<Date | undefined>(undefined)
   const [formData, setFormData] = useState(formVazio)
 
-  const carregarDados = async () => {
+  const {
+    itens: agendamentos,
+    carregando,
+    temMais,
+    carregarPrimeira,
+    carregarMais,
+  } = usePaginado<Agendamento, QueryDocumentSnapshot>((qtd, cursor) => {
+    const user = auth.currentUser
+    if (!user) return Promise.resolve({ itens: [], proximoCursor: null })
+    return listarAgendamentosPaginado(user.uid, qtd, cursor)
+  })
+
+  const carregarClientes = async () => {
     const user = auth.currentUser
     if (!user) return
-
-    setCarregando(true)
-    const [agendamentosData, clientesData] = await Promise.all([
-      listarAgendamentos(user.uid),
-      listarClientes(user.uid),
-    ])
-    setAgendamentos(agendamentosData)
-    setClientes(clientesData)
-    setCarregando(false)
+    setClientes(await listarClientes(user.uid))
   }
 
   useEffect(() => {
-    carregarDados() // eslint-disable-line react-hooks/set-state-in-effect
-  }, [])
+    carregarPrimeira()
+    carregarClientes() // eslint-disable-line react-hooks/set-state-in-effect
+  }, [carregarPrimeira])
 
   const abrirNovo = () => {
     setEditandoId(null)
@@ -125,14 +129,14 @@ export default function AgendamentosPage() {
     setMostrarForm(false)
     setEditandoId(null)
     setFormData(formVazio)
-    carregarDados()
+    carregarPrimeira()
   }
 
   const confirmarExclusao = async () => {
     if (!excluindoId) return
     await excluirAgendamento(excluindoId)
     setExcluindoId(null)
-    carregarDados()
+    carregarPrimeira()
   }
 
   const filtrados = agendamentos.filter(
@@ -410,6 +414,14 @@ export default function AgendamentosPage() {
             </div>
           )}
         </>
+      )}
+
+      {temMais && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" onClick={carregarMais} disabled={carregando}>
+            Carregar mais
+          </Button>
+        </div>
       )}
 
       <ConfirmDialog

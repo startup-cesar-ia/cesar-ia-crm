@@ -3,41 +3,37 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { auth } from '@/lib/firebase'
-import { listarClientes, excluirCliente } from '@/lib/firebase-services'
+import { listarClientesPaginado, excluirCliente } from '@/lib/firebase-services'
+import { QueryDocumentSnapshot } from 'firebase/firestore'
 import { Cliente } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { usePaginado } from '@/lib/use-paginado'
 import { Plus, Search, Trash2, Eye } from 'lucide-react'
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState<Cliente[]>([])
+  const { itens, carregando, temMais, carregarPrimeira, carregarMais } =
+    usePaginado<Cliente, QueryDocumentSnapshot>((qtd, cursor) => {
+      const user = auth.currentUser
+      if (!user) return Promise.resolve({ itens: [], proximoCursor: null })
+      return listarClientesPaginado(user.uid, qtd, cursor)
+    })
   const [busca, setBusca] = useState('')
-  const [carregando, setCarregando] = useState(true)
   const [excluindoId, setExcluindoId] = useState<string | null>(null)
 
-  const carregarClientes = async () => {
-    const user = auth.currentUser
-    if (!user) return
-
-    setCarregando(true)
-    const dados = await listarClientes(user.uid)
-    setClientes(dados)
-    setCarregando(false)
-  }
-
   useEffect(() => {
-    carregarClientes() // eslint-disable-line react-hooks/set-state-in-effect
-  }, [])
+    carregarPrimeira()
+  }, [carregarPrimeira])
 
   const confirmarExclusao = async () => {
     if (!excluindoId) return
     await excluirCliente(excluindoId)
     setExcluindoId(null)
-    carregarClientes()
+    carregarPrimeira()
   }
 
-  const clientesFiltrados = clientes.filter(
+  const clientesFiltrados = itens.filter(
     (cliente) =>
       cliente.nome.toLowerCase().includes(busca.toLowerCase()) ||
       cliente.email?.toLowerCase().includes(busca.toLowerCase()) ||
@@ -143,6 +139,14 @@ export default function ClientesPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {temMais && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" onClick={carregarMais} disabled={carregando}>
+            Carregar mais
+          </Button>
         </div>
       )}
 

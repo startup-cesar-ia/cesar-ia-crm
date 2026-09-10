@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase'
 import {
-  listarTransacoes,
+  listarTransacoesPaginado,
   criarTransacao,
   atualizarTransacao,
   excluirTransacao,
   listarClientes,
 } from '@/lib/firebase-services'
-import { Timestamp } from 'firebase/firestore'
+import { Timestamp, QueryDocumentSnapshot } from 'firebase/firestore'
 import { Transacao, Cliente, TipoTransacao, StatusTransacao, CATEGORIAS_RECEITA, CATEGORIAS_DESPESA } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +22,7 @@ import { Plus, Trash2, Edit, Wallet, TrendingUp, TrendingDown, ArrowLeftRight } 
 import { format } from 'date-fns'
 import { formatarData } from '@/lib/date'
 import { combinaTexto, useSearch } from '@/lib/search-context'
+import { usePaginado } from '@/lib/use-paginado'
 
 const formVazio = {
   tipo: 'receita' as TipoTransacao,
@@ -42,31 +43,29 @@ function formatarValor(valor: number) {
 
 export default function FinanceiroPage() {
   const { query } = useSearch()
-  const [transacoes, setTransacoes] = useState<Transacao[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
-  const [carregando, setCarregando] = useState(true)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [excluindoId, setExcluindoId] = useState<string | null>(null)
   const [formData, setFormData] = useState(formVazio)
 
-  const carregarDados = async () => {
+  const { itens: transacoes, carregando, temMais, carregarPrimeira, carregarMais } =
+    usePaginado<Transacao, QueryDocumentSnapshot>((qtd, cursor) => {
+      const user = auth.currentUser
+      if (!user) return Promise.resolve({ itens: [], proximoCursor: null })
+      return listarTransacoesPaginado(user.uid, qtd, cursor)
+    })
+
+  const carregarClientes = async () => {
     const user = auth.currentUser
     if (!user) return
-
-    setCarregando(true)
-    const [transacoesData, clientesData] = await Promise.all([
-      listarTransacoes(user.uid),
-      listarClientes(user.uid),
-    ])
-    setTransacoes(transacoesData)
-    setClientes(clientesData)
-    setCarregando(false)
+    setClientes(await listarClientes(user.uid))
   }
 
   useEffect(() => {
-    carregarDados() // eslint-disable-line react-hooks/set-state-in-effect
-  }, [])
+    carregarPrimeira()
+    carregarClientes() // eslint-disable-line react-hooks/set-state-in-effect
+  }, [carregarPrimeira])
 
   const categoriasDisponiveis =
     formData.tipo === 'receita' ? CATEGORIAS_RECEITA : CATEGORIAS_DESPESA
@@ -115,14 +114,14 @@ export default function FinanceiroPage() {
     setMostrarForm(false)
     setEditandoId(null)
     setFormData(formVazio)
-    carregarDados()
+    carregarPrimeira()
   }
 
   const confirmarExclusao = async () => {
     if (!excluindoId) return
     await excluirTransacao(excluindoId)
     setExcluindoId(null)
-    carregarDados()
+    carregarPrimeira()
   }
 
   const filtradas = transacoes.filter(
@@ -418,6 +417,14 @@ export default function FinanceiroPage() {
               </Card>
             )
           })}
+        </div>
+      )}
+
+      {temMais && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" onClick={carregarMais} disabled={carregando}>
+            Carregar mais
+          </Button>
         </div>
       )}
 

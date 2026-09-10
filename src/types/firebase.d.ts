@@ -45,5 +45,10 @@ declare module 'firebase/firestore' {
 
 declare module 'firebase/storage' {
   export type FirebaseStorage = Record<string, never>
+  export type StorageReference = Record<string, never>
+  export type UploadTask = Record<string, never>
   export function getStorage(app?: any): FirebaseStorage
+  export function ref(storage: any, path?: string): StorageReference
+  export function uploadBytes(reference: StorageReference, data: any): Promise<UploadTask>
+  export function getDownloadURL(reference: StorageReference): Promise<string>
 }
