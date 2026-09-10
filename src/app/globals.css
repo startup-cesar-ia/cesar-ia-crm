@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@theme {
+  /* Superfícies */
+  --color-background: #F4F1EA;
+  --color-foreground: #1A1C20;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1A1C20;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1A1C20;
+
+  /* Marca */
+  --color-primary: #FF5C00;
+  --color-primary-hover: #E95200;
+  --color-primary-foreground: #FFFFFF;
+
+  --color-secondary: #FFFFFF;
+  --color-secondary-foreground: #1A1C20;
+
+  --color-muted: #ECE7DC;
+  --color-muted-foreground: #8A8F98;
+
+  --color-accent: #F0EBE0;
+  --color-accent-foreground: #1A1C20;
+
+  /* Semânticas */
+  --color-destructive: #DC2626;
+  --color-destructive-foreground: #FFFFFF;
+  --color-success: #16A34A;
+  --color-success-foreground: #FFFFFF;
+  --color-warning: #F59E0B;
+  --color-warning-foreground: #FFFFFF;
+  --color-info: #2563EB;
+  --color-info-foreground: #FFFFFF;
+
+  /* Controles */
+  --color-border: #E6E0D4;
+  --color-input: #E6E0D4;
+  --color-ring: #FF5C00;
+
+  /* Sidebar (dark) */
+  --color-sidebar: #1A1C20;
+  --color-sidebar-foreground: #F4F1EA;
+  --color-sidebar-muted: #9AA0AA;
+
+  /* Tipografia */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Sombras suaves e difusas */
+  --shadow-soft: 0 1px 2px rgba(26, 28, 32, 0.04),
+    0 8px 24px rgba(26, 28, 32, 0.05);
+  --shadow-soft-lg: 0 2px 4px rgba(26, 28, 32, 0.04),
+    0 16px 40px rgba(26, 28, 32, 0.08);
+}
+
+@layer base {
+  html,
+  body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+  }
+
+  ::selection {
+    background: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
+}
