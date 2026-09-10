@@ -93,3 +93,59 @@
     color: var(--color-primary-foreground);
   }
 }
+
+/* Calendário (react-day-picker) — alinhado à marca */
+.rdp-root {
+  --rdp-accent-color: var(--color-primary);
+  --rdp-accent-background-color: var(--color-primary);
+  --rdp-range_start-background: var(--color-primary);
+  --rdp-range_end-background: var(--color-primary);
+  --rdp-selected-border: var(--color-primary);
+  --rdp-cell_size: 40px;
+  font-family: var(--font-sans);
+}
+
+.rdp-day_button {
+  border-radius: 10px;
+}
+
+.rdp-day:hover:not(.rdp-selected):not(.rdp-disabled) {
+  background: var(--color-muted);
+}
+
+.rdp-com-agendamento .rdp-day_button {
+  position: relative;
+}
+
+.rdp-com-agendamento .rdp-day_button::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-primary);
+}
+
+/* Tema escuro — sobrescreve os tokens de superfície */
+.dark {
+  --color-background: #12141A;
+  --color-foreground: #F4F1EA;
+  --color-card: #1C1F26;
+  --color-card-foreground: #F4F1EA;
+  --color-popover: #1C1F26;
+  --color-popover-foreground: #F4F1EA;
+  --color-secondary: #1C1F26;
+  --color-secondary-foreground: #F4F1EA;
+  --color-muted: #262A33;
+  --color-muted-foreground: #9AA0AA;
+  --color-accent: #262A33;
+  --color-accent-foreground: #F4F1EA;
+  --color-border: #2A2E38;
+  --color-input: #2A2E38;
+  --color-sidebar: #0D0F14;
+  --color-sidebar-foreground: #F4F1EA;
+  --color-sidebar-muted: #9AA0AA;
+}

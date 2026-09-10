@@ -3,6 +3,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  setDoc,
   doc,
   getDocs,
   getDoc,
@@ -12,7 +13,7 @@ import {
   QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { Cliente, Agendamento, Tarefa } from '@/types'
+import { Cliente, Agendamento, Tarefa, Transacao, Usuario } from '@/types'
 
 function paraMillis(valor: unknown): number {
   if (!valor) return 0
@@ -147,5 +148,63 @@ export async function atualizarTarefa(id: string, dados: Partial<Tarefa>) {
 
 export async function excluirTarefa(id: string) {
   const docRef = doc(db, 'tarefas', id)
+  await deleteDoc(docRef)
+}
+
+// Usuários
+export async function salvarUsuario(usuario: Omit<Usuario, 'criadoEm'>) {
+  const docRef = doc(db, 'usuarios', usuario.uid)
+  const snap = await getDoc(docRef)
+  if (snap.exists()) {
+    await updateDoc(docRef, { nome: usuario.nome, photoURL: usuario.photoURL })
+  } else {
+    await setDoc(docRef, {
+      ...usuario,
+      criadoEm: Timestamp.now(),
+    })
+  }
+}
+
+export async function buscarUsuario(uid: string): Promise<Usuario | null> {
+  const docRef = doc(db, 'usuarios', uid)
+  const snap = await getDoc(docRef)
+  if (snap.exists()) {
+    return { uid: snap.id, ...snap.data() } as Usuario
+  }
+  return null
+}
+
+// Transações
+export async function criarTransacao(
+  transacao: Omit<Transacao, 'id' | 'criadoEm'>
+) {
+  const docRef = await addDoc(collection(db, 'transacoes'), {
+    ...transacao,
+    criadoEm: Timestamp.now(),
+  })
+  return docRef.id
+}
+
+export async function listarTransacoes(usuarioId: string) {
+  const q = query(
+    collection(db, 'transacoes'),
+    where('usuarioId', '==', usuarioId)
+  )
+  const snapshot = await getDocs(q)
+  return snapshot.docs
+    .map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() }) as Transacao)
+    .sort((a: Transacao, b: Transacao) => paraMillis(b.data) - paraMillis(a.data))
+}
+
+export async function atualizarTransacao(
+  id: string,
+  dados: Partial<Transacao>
+) {
+  const docRef = doc(db, 'transacoes', id)
+  await updateDoc(docRef, dados)
+}
+
+export async function excluirTransacao(id: string) {
+  const docRef = doc(db, 'transacoes', id)
   await deleteDoc(docRef)
 }

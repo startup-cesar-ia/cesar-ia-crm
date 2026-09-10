@@ -3,8 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+} from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { salvarUsuario } from '@/lib/firebase-services'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -22,8 +28,33 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleGoogleLogin = () => {
-    setError('Login com Google será habilitado em breve.')
+  const handleGoogleLogin = async () => {
+    setError('')
+    setLoading(true)
+    try {
+      const provider = new GoogleAuthProvider()
+      const resultado = await signInWithPopup(auth, provider)
+      const user = resultado.user
+      await salvarUsuario({
+        uid: user.uid,
+        nome: user.displayName || user.email?.split('@')[0] || 'Usuário',
+        email: user.email || '',
+        photoURL: user.photoURL || undefined,
+      })
+      router.push('/dashboard')
+    } catch (err: unknown) {
+      const error = err as { code?: string }
+      if (error.code === 'auth/popup-closed-by-user') {
+        return
+      }
+      if (error.code === 'auth/unauthorized-domain') {
+        setError('Domínio não autorizado. Adicione este domínio no Firebase Console.')
+      } else {
+        setError('Erro ao entrar com Google. Tente novamente.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const validarEmail = (email: string) => {
@@ -56,11 +87,20 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      let user
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password)
+        const cred = await signInWithEmailAndPassword(auth, email, password)
+        user = cred.user
       } else {
-        await createUserWithEmailAndPassword(auth, email, password)
+        const cred = await createUserWithEmailAndPassword(auth, email, password)
+        user = cred.user
       }
+      await salvarUsuario({
+        uid: user.uid,
+        nome: user.displayName || email.split('@')[0],
+        email: user.email || email,
+        photoURL: user.photoURL || undefined,
+      })
       router.push('/dashboard')
     } catch (err: unknown) {
       const error = err as { code?: string }

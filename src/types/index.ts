@@ -46,3 +46,22 @@ export interface Tarefa {
   status: 'backlog' | 'todo' | 'doing' | 'done'
   criadoEm: Timestamp
 }
+
+export type TipoTransacao = 'receita' | 'despesa'
+export type StatusTransacao = 'pago' | 'pendente'
+
+export interface Transacao {
+  id: string
+  usuarioId: string
+  tipo: TipoTransacao
+  descricao: string
+  valor: number
+  data: Timestamp
+  categoria: string
+  clienteId?: string
+  status: StatusTransacao
+  criadoEm: Timestamp
+}
+
+export const CATEGORIAS_RECEITA = ['Vendas', 'Serviços', 'Consultoria', 'Outros']
+export const CATEGORIAS_DESPESA = ['Fornecedores', 'Marketing', 'Equipamentos', 'Pessoal', 'Outros']

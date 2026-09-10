@@ -7,6 +7,7 @@ import { Cliente } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ArrowLeft, Save, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -20,6 +21,7 @@ export default function ClienteDetailPage() {
   const [salvando, setSalvando] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -108,11 +110,10 @@ export default function ClienteDetailPage() {
     }
   }
 
-  const handleExcluir = async () => {
-    if (confirm('Tem certeza que deseja excluir este cliente?')) {
-      await excluirCliente(clienteId)
-      router.push('/clientes')
-    }
+  const confirmarExclusao = async () => {
+    await excluirCliente(clienteId)
+    setConfirmandoExclusao(false)
+    router.push('/clientes')
   }
 
   if (carregando) {
@@ -165,7 +166,7 @@ export default function ClienteDetailPage() {
             variant="ghost"
             size="icon"
             className="text-red-500 hover:text-red-600"
-            onClick={handleExcluir}
+            onClick={() => setConfirmandoExclusao(true)}
           >
             <Trash2 className="h-5 w-5" />
           </Button>
@@ -362,6 +363,15 @@ export default function ClienteDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmandoExclusao}
+        title="Excluir cliente"
+        description="Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={confirmarExclusao}
+        onCancel={() => setConfirmandoExclusao(false)}
+      />
     </div>
   )
 }

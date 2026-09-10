@@ -23,6 +23,7 @@ declare module 'firebase/firestore' {
 
   export class Timestamp {
     static now(): Timestamp
+    static fromDate(date: Date): Timestamp
     toDate(): Date
   }
 
@@ -30,11 +31,15 @@ declare module 'firebase/firestore' {
   export function doc(db: any, path: string, ...pathSegments: string[]): DocumentReference
   export function addDoc(reference: any, data: DocumentData): Promise<DocumentReference>
   export function updateDoc(reference: any, data: Partial<DocumentData>): Promise<void>
+  export function setDoc(reference: any, data: DocumentData): Promise<void>
   export function deleteDoc(reference: any): Promise<void>
   export function getDoc(reference: any): Promise<DocumentSnapshot>
   export function getDocs(query: Query): Promise<QuerySnapshot>
   export function query(reference: any, ...constraints: any[]): Query
   export function where(field: string, op: string, value: any): any
+  export function orderBy(field: string, direction?: 'asc' | 'desc'): any
+  export function limit(n: number): any
+  export function startAfter(value: any): any
   export function getFirestore(app?: any): Firestore
 }
 

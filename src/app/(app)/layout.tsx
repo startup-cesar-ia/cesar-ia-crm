@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { salvarUsuario } from '@/lib/firebase-services'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import { Spinner } from '@/components/ui/spinner'
+import { SearchProvider } from '@/lib/search-context'
 
 const pageMeta: Record<string, { title: string; description: string }> = {
   '/dashboard': {
@@ -51,6 +53,12 @@ export default function AppLayout({
       if (!user) {
         router.push('/login')
       } else {
+        salvarUsuario({
+          uid: user.uid,
+          nome: user.displayName || user.email?.split('@')[0] || 'Usuário',
+          email: user.email || '',
+          photoURL: user.photoURL || undefined,
+        })
         setLoading(false)
       }
     })
@@ -76,31 +84,33 @@ export default function AppLayout({
   const meta = pageMeta[pathname]
 
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <SearchProvider>
+      <div className="min-h-screen bg-background">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="lg:pl-64">
-        <Header onOpenSidebar={() => setSidebarOpen(true)} />
+        <div className="lg:pl-64">
+          <Header onOpenSidebar={() => setSidebarOpen(true)} />
 
-        <main className="px-4 pb-16 pt-8 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            {meta && (
-              <div className="mb-8 space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                  {meta.title}
-                </h1>
-                {meta.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {meta.description}
-                  </p>
-                )}
-              </div>
-            )}
+          <main className="px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl">
+              {meta && (
+                <div className="mb-8 space-y-1">
+                  <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                    {meta.title}
+                  </h1>
+                  {meta.description && (
+                    <p className="text-sm text-muted-foreground">
+                      {meta.description}
+                    </p>
+                  )}
+                </div>
+              )}
 
-            {children}
-          </div>
-        </main>
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </SearchProvider>
   )
 }

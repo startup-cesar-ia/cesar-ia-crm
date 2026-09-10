@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { auth } from '@/lib/firebase'
 import { User } from 'firebase/auth'
-import { Bell, Search, Menu } from 'lucide-react'
+import { Search, Menu } from 'lucide-react'
+import { useSearch } from '@/lib/search-context'
+import { Notifications } from '@/components/layout/Notifications'
 
 interface HeaderProps {
   onOpenSidebar: () => void
@@ -11,6 +14,7 @@ interface HeaderProps {
 
 export function Header({ onOpenSidebar }: HeaderProps) {
   const [user, setUser] = useState<User | null>(null)
+  const { query, setQuery } = useSearch()
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((current) => setUser(current))
@@ -38,23 +42,33 @@ export function Header({ onOpenSidebar }: HeaderProps) {
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
-            placeholder="Buscar clientes, agendamentos, tarefas..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar nesta tela..."
+            aria-label="Buscar"
             className="h-10 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-sm text-foreground shadow-soft outline-none transition-all duration-200 placeholder:text-muted-foreground focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="Limpar busca"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
-          {/* Notificações */}
-          <button
-            aria-label="Notificações"
-            className="relative rounded-xl p-2.5 text-foreground transition-colors hover:bg-black/5"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-          </button>
+          <Notifications />
 
           {/* Perfil */}
-          <div className="flex items-center gap-3 rounded-xl py-1.5 pl-1.5 pr-2 transition-colors hover:bg-black/5 sm:pr-3">
+          <Link
+            href="/configuracoes"
+            aria-label="Ir para configurações"
+            className="flex items-center gap-3 rounded-xl py-1.5 pl-1.5 pr-2 transition-colors hover:bg-black/5 sm:pr-3"
+          >
             {user?.photoURL ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -75,7 +89,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
                 {email}
               </p>
             </div>
-          </div>
+          </Link>
         </div>
       </div>
     </header>

@@ -2,31 +2,66 @@
 
 import { useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase'
-import { listarAgendamentos, criarAgendamento, excluirAgendamento, listarClientes } from '@/lib/firebase-services'
+import {
+  listarAgendamentos,
+  criarAgendamento,
+  atualizarAgendamento,
+  excluirAgendamento,
+  listarClientes,
+} from '@/lib/firebase-services'
 import { Timestamp } from 'firebase/firestore'
 import { Agendamento, Cliente } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Calendar, Trash2, Check, Clock, X } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Card, CardContent } from '@/components/ui/card'
+import { Plus, Calendar, Trash2, Edit, List, Clock } from 'lucide-react'
 import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { formatarData } from '@/lib/date'
+import { combinaTexto, useSearch } from '@/lib/search-context'
+import { DayPicker } from 'react-day-picker'
+import 'react-day-picker/style.css'
+
+type StatusAgendamento = 'confirmado' | 'pendente' | 'cancelado'
+
+const statusBadge: Record<StatusAgendamento, 'success' | 'warning' | 'destructive'> = {
+  confirmado: 'success',
+  pendente: 'warning',
+  cancelado: 'destructive',
+}
+
+const statusLabel: Record<StatusAgendamento, string> = {
+  confirmado: 'Confirmado',
+  pendente: 'Pendente',
+  cancelado: 'Cancelado',
+}
+
+const formVazio = {
+  titulo: '',
+  descricao: '',
+  data: format(new Date(), 'yyyy-MM-dd'),
+  horaInicio: '09:00',
+  horaFim: '10:00',
+  clienteId: '',
+  status: 'pendente' as StatusAgendamento,
+}
 
 export default function AgendamentosPage() {
+  const { query } = useSearch()
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [carregando, setCarregando] = useState(true)
   const [mostrarForm, setMostrarForm] = useState(false)
-
-  const [formData, setFormData] = useState({
-    titulo: '',
-    descricao: '',
-    data: format(new Date(), 'yyyy-MM-dd'),
-    horaInicio: '09:00',
-    horaFim: '10:00',
-    clienteId: '',
-    status: 'pendente' as 'confirmado' | 'pendente' | 'cancelado',
-  })
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [excluindoId, setExcluindoId] = useState<string | null>(null)
+  const [visao, setVisao] = useState<'lista' | 'calendario'>('lista')
+  const [diaSelecionado, setDiaSelecionado] = useState<Date | undefined>(undefined)
+  const [formData, setFormData] = useState(formVazio)
 
   const carregarDados = async () => {
     const user = auth.currentUser
@@ -46,89 +81,112 @@ export default function AgendamentosPage() {
     carregarDados() // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
 
+  const abrirNovo = () => {
+    setEditandoId(null)
+    setFormData(formVazio)
+    setMostrarForm(true)
+  }
+
+  const abrirEdicao = (agendamento: Agendamento) => {
+    setEditandoId(agendamento.id)
+    setFormData({
+      titulo: agendamento.titulo,
+      descricao: agendamento.descricao || '',
+      data: format(new Date(agendamento.data.toDate()), 'yyyy-MM-dd'),
+      horaInicio: agendamento.horaInicio,
+      horaFim: agendamento.horaFim,
+      clienteId: agendamento.clienteId || '',
+      status: agendamento.status,
+    })
+    setMostrarForm(true)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const user = auth.currentUser
     if (!user) return
 
-    await criarAgendamento({
-      usuarioId: user.uid,
+    const dados = {
       titulo: formData.titulo,
       descricao: formData.descricao || undefined,
-      data: new Date(formData.data) as unknown as Timestamp,
+      data: Timestamp.fromDate(new Date(formData.data)),
       horaInicio: formData.horaInicio,
       horaFim: formData.horaFim,
       clienteId: formData.clienteId || undefined,
       status: formData.status,
-    })
+    }
+
+    if (editandoId) {
+      await atualizarAgendamento(editandoId, dados)
+    } else {
+      await criarAgendamento({ ...dados, usuarioId: user.uid })
+    }
 
     setMostrarForm(false)
-    setFormData({
-      titulo: '',
-      descricao: '',
-      data: format(new Date(), 'yyyy-MM-dd'),
-      horaInicio: '09:00',
-      horaFim: '10:00',
-      clienteId: '',
-      status: 'pendente',
-    })
+    setEditandoId(null)
+    setFormData(formVazio)
     carregarDados()
   }
 
-  const handleExcluir = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-      await excluirAgendamento(id)
-      carregarDados()
-    }
+  const confirmarExclusao = async () => {
+    if (!excluindoId) return
+    await excluirAgendamento(excluindoId)
+    setExcluindoId(null)
+    carregarDados()
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'confirmado':
-        return <Check className="h-4 w-4 text-green-500" />
-      case 'pendente':
-        return <Clock className="h-4 w-4 text-yellow-500" />
-      case 'cancelado':
-        return <X className="h-4 w-4 text-red-500" />
-      default:
-        return null
-    }
-  }
+  const filtrados = agendamentos.filter(
+    (a) =>
+      combinaTexto(a.titulo, query) &&
+      combinaTexto(statusLabel[a.status], query) &&
+      (diaSelecionado
+        ? format(a.data.toDate(), 'yyyy-MM-dd') === format(diaSelecionado, 'yyyy-MM-dd')
+        : true)
+  )
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'confirmado':
-        return 'Confirmado'
-      case 'pendente':
-        return 'Pendente'
-      case 'cancelado':
-        return 'Cancelado'
-      default:
-        return status
-    }
-  }
+  const diaTemAgendamento = (dia: Date) =>
+    agendamentos.some(
+      (a) => format(a.data.toDate(), 'yyyy-MM-dd') === format(dia, 'yyyy-MM-dd')
+    )
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        <Button onClick={() => setMostrarForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Agendamento
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-soft">
+          <Button
+            variant={visao === 'lista' ? 'primary' : 'ghost'}
+            size="sm"
+            onClick={() => setVisao('lista')}
+            className={visao === 'lista' ? '' : 'text-muted-foreground'}
+          >
+            <List className="h-4 w-4" /> Lista
+          </Button>
+          <Button
+            variant={visao === 'calendario' ? 'primary' : 'ghost'}
+            size="sm"
+            onClick={() => setVisao('calendario')}
+            className={visao === 'calendario' ? '' : 'text-muted-foreground'}
+          >
+            <Calendar className="h-4 w-4" /> Calendário
+          </Button>
+        </div>
+
+        <Button onClick={abrirNovo}>
+          <Plus className="mr-2 h-4 w-4" /> Novo Agendamento
         </Button>
       </div>
 
       {mostrarForm && (
         <Card>
-          <CardHeader>
-            <CardTitle>Novo Agendamento</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4 p-6">
+            <h2 className="text-lg font-semibold text-foreground">
+              {editandoId ? 'Editar Agendamento' : 'Novo Agendamento'}
+            </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Título *
-                </label>
+                <Label htmlFor="titulo">Título *</Label>
                 <Input
+                  id="titulo"
                   value={formData.titulo}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, titulo: e.target.value }))
@@ -139,25 +197,22 @@ export default function AgendamentosPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Descrição
-                </label>
-                <textarea
+                <Label htmlFor="descricao">Descrição</Label>
+                <Textarea
+                  id="descricao"
                   value={formData.descricao}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, descricao: e.target.value }))
                   }
                   placeholder="Descrição do agendamento..."
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Data *
-                  </label>
+                  <Label htmlFor="data">Data *</Label>
                   <Input
+                    id="data"
                     type="date"
                     value={formData.data}
                     onChange={(e) =>
@@ -166,36 +221,26 @@ export default function AgendamentosPage() {
                     required
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Hora Início *
-                  </label>
+                  <Label htmlFor="horaInicio">Hora Início *</Label>
                   <Input
+                    id="horaInicio"
                     type="time"
                     value={formData.horaInicio}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        horaInicio: e.target.value,
-                      }))
+                      setFormData((prev) => ({ ...prev, horaInicio: e.target.value }))
                     }
                     required
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Hora Fim *
-                  </label>
+                  <Label htmlFor="horaFim">Hora Fim *</Label>
                   <Input
+                    id="horaFim"
                     type="time"
                     value={formData.horaFim}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        horaFim: e.target.value,
-                      }))
+                      setFormData((prev) => ({ ...prev, horaFim: e.target.value }))
                     }
                     required
                   />
@@ -204,18 +249,13 @@ export default function AgendamentosPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Cliente
-                  </label>
-                  <select
+                  <Label htmlFor="clienteId">Cliente</Label>
+                  <Select
+                    id="clienteId"
                     value={formData.clienteId}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        clienteId: e.target.value,
-                      }))
+                      setFormData((prev) => ({ ...prev, clienteId: e.target.value }))
                     }
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   >
                     <option value="">Selecionar cliente</option>
                     {clientes.map((cliente) => (
@@ -223,44 +263,41 @@ export default function AgendamentosPage() {
                         {cliente.nome}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
-
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Status
-                  </label>
-                  <select
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    id="status"
                     value={formData.status}
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        status: e.target.value as 'confirmado' | 'pendente' | 'cancelado',
+                        status: e.target.value as StatusAgendamento,
                       }))
                     }
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   >
                     <option value="pendente">Pendente</option>
                     <option value="confirmado">Confirmado</option>
                     <option value="cancelado">Cancelado</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-4 pt-2">
                 <Button
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setMostrarForm(false)}
+                  onClick={() => {
+                    setMostrarForm(false)
+                    setEditandoId(null)
+                  }}
                 >
                   Cancelar
                 </Button>
-                <Button
-                  type="submit"
-                  className="flex-1 bg-primary hover:bg-primary-hover text-white"
-                >
-                  Salvar Agendamento
+                <Button type="submit" className="flex-1">
+                  {editandoId ? 'Atualizar' : 'Salvar'}
                 </Button>
               </div>
             </form>
@@ -270,83 +307,119 @@ export default function AgendamentosPage() {
 
       {carregando ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
         </div>
-      ) : agendamentos.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              Nenhum agendamento cadastrado ainda.
-            </p>
-            <Button
-              className="mt-4 bg-primary hover:bg-primary-hover text-white"
-              onClick={() => setMostrarForm(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Criar primeiro agendamento
-            </Button>
-          </CardContent>
-        </Card>
       ) : (
-        <div className="space-y-4">
-          {agendamentos.map((agendamento) => {
-            const cliente = clientes.find(
-              (c) => c.id === agendamento.clienteId
-            )
-            return (
-              <Card key={agendamento.id}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(agendamento.status)}
-                        <h3 className="font-semibold text-foreground">
-                          {agendamento.titulo}
-                        </h3>
-                        <span className="text-sm text-muted-foreground">
-                          - {getStatusLabel(agendamento.status)}
-                        </span>
+        <>
+          {visao === 'calendario' && (
+            <Card>
+              <CardContent className="flex justify-center p-6">
+                <DayPicker
+                  mode="single"
+                  selected={diaSelecionado}
+                  onSelect={setDiaSelecionado}
+                  locale={ptBR}
+                  modifiers={{ comAgendamento: diaTemAgendamento }}
+                  modifiersClassNames={{
+                    comAgendamento: 'rdp-com-agendamento',
+                  }}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {filtrados.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  {query || diaSelecionado
+                    ? 'Nenhum agendamento para o filtro.'
+                    : 'Nenhum agendamento cadastrado ainda.'}
+                </p>
+                <Button className="mt-4" onClick={abrirNovo}>
+                  <Plus className="mr-2 h-4 w-4" /> Criar primeiro agendamento
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {filtrados.map((agendamento) => {
+                const cliente = clientes.find(
+                  (c) => c.id === agendamento.clienteId
+                )
+                return (
+                  <Card key={agendamento.id}>
+                    <CardContent className="flex items-start justify-between gap-4 p-6">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold text-foreground">
+                            {agendamento.titulo}
+                          </h3>
+                          <Badge variant={statusBadge[agendamento.status]}>
+                            {statusLabel[agendamento.status]}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {formatarData(agendamento.data)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {agendamento.horaInicio} - {agendamento.horaFim}
+                          </span>
+                        </div>
+
+                        {cliente && (
+                          <p className="text-sm text-muted-foreground">
+                            Cliente: {cliente.nome}
+                          </p>
+                        )}
+                        {agendamento.descricao && (
+                          <p className="text-sm text-muted-foreground">
+                            {agendamento.descricao}
+                          </p>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {formatarData(agendamento.data)}
-                        </span>
-                        <span>
-                          {agendamento.horaInicio} - {agendamento.horaFim}
-                        </span>
+                      <div className="flex shrink-0 gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Editar agendamento"
+                          onClick={() => abrirEdicao(agendamento)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Excluir agendamento"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setExcluindoId(agendamento.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-
-                      {cliente && (
-                        <p className="text-sm text-muted-foreground">
-                          Cliente: {cliente.nome}
-                        </p>
-                      )}
-
-                      {agendamento.descricao && (
-                        <p className="text-sm text-muted-foreground">
-                          {agendamento.descricao}
-                        </p>
-                      )}
-                    </div>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-600"
-                      onClick={() => handleExcluir(agendamento.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </>
       )}
+
+      <ConfirmDialog
+        open={!!excluindoId}
+        title="Excluir agendamento"
+        description="Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={confirmarExclusao}
+        onCancel={() => setExcluindoId(null)}
+      />
     </div>
   )
 }

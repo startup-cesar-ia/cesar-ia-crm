@@ -1,58 +1,41 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/firebase'
 import {
   listarClientes,
   listarTarefas,
-  listarProximosAgendamentos,
-  contarAgendamentos,
+  listarAgendamentos,
+  listarTransacoes,
 } from '@/lib/firebase-services'
-import { Cliente, Agendamento, Tarefa } from '@/types'
-import { Users, CheckSquare, Calendar, AlertCircle, ChevronRight } from 'lucide-react'
-import { format } from 'date-fns'
+import { Cliente, Agendamento, Tarefa, Transacao } from '@/types'
+import { Users, CheckSquare, Calendar, AlertCircle, ChevronRight, Wallet, TrendingUp, TrendingDown } from 'lucide-react'
+import { format, subMonths, startOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import { cn } from '@/lib/utils'
+import { EmptyState } from '@/components/ui/empty-state'
+import { paraDate, formatarData } from '@/lib/date'
 
-interface DashboardStats {
+interface DashboardData {
   clientes: Cliente[]
-  proximosAgendamentos: Agendamento[]
-  totalAgendamentos: number
   tarefas: Tarefa[]
-  totalClientes: number
-  totalTarefas: number
+  agendamentos: Agendamento[]
+  transacoes: Transacao[]
 }
 
-const cardStyles = {
-  info: {
-    iconColor: 'text-info',
-    iconBg: 'bg-info/10',
-    footerBg: 'bg-info/5',
-    footerBorder: 'border-info/20',
-  },
-  warning: {
-    iconColor: 'text-warning',
-    iconBg: 'bg-warning/10',
-    footerBg: 'bg-warning/5',
-    footerBorder: 'border-warning/20',
-  },
-  success: {
-    iconColor: 'text-success',
-    iconBg: 'bg-success/10',
-    footerBg: 'bg-success/5',
-    footerBorder: 'border-success/20',
-  },
-} as const
-
-type CardTone = keyof typeof cardStyles
+function formatarValor(valor: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(valor)
+}
 
 export default function Dashboard() {
   const router = useRouter()
-  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [dados, setDados] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -63,29 +46,17 @@ export default function Dashboard() {
       setLoading(false)
       return
     }
-
     try {
       setLoading(true)
       setError(null)
-
-      const [clientes, proximosAgendamentos, totalAgendamentos, tarefas] =
-        await Promise.all([
-          listarClientes(user.uid),
-          listarProximosAgendamentos(user.uid, 5),
-          contarAgendamentos(user.uid),
-          listarTarefas(user.uid),
-        ])
-
-      setStats({
-        clientes,
-        proximosAgendamentos,
-        totalAgendamentos,
-        tarefas,
-        totalClientes: clientes.length,
-        totalTarefas: tarefas.length,
-      })
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err)
+      const [clientes, tarefas, agendamentos, transacoes] = await Promise.all([
+        listarClientes(user.uid),
+        listarTarefas(user.uid),
+        listarAgendamentos(user.uid),
+        listarTransacoes(user.uid),
+      ])
+      setDados({ clientes, tarefas, agendamentos, transacoes })
+    } catch {
       setError('Erro ao carregar dados. Tente novamente.')
     } finally {
       setLoading(false)
@@ -96,30 +67,82 @@ export default function Dashboard() {
     carregarDados() // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
 
-  const formatarData = (timestamp: unknown) => {
-    if (!timestamp) return 'Sem data'
-    const ts = timestamp as { toDate?: () => Date }
-    const date = ts.toDate ? ts.toDate() : new Date(String(timestamp))
-    return format(date, 'dd/MM/yyyy', { locale: ptBR })
-  }
+  const kpis = useMemo(() => {
+    if (!dados) return null
+    const tarefasPendentes = dados.tarefas.filter((t) => t.status !== 'done').length
+    const receitas = dados.transacoes
+      .filter((t) => t.tipo === 'receita' && t.status === 'pago')
+      .reduce((s, t) => s + t.valor, 0)
+    const despesas = dados.transacoes
+      .filter((t) => t.tipo === 'despesa' && t.status === 'pago')
+      .reduce((s, t) => s + t.valor, 0)
+    return { tarefasPendentes, receitas, despesas, saldo: receitas - despesas }
+  }, [dados])
 
-  const formatarDataHora = (timestamp: unknown) => {
-    if (!timestamp) return 'Sem data'
-    const ts = timestamp as { toDate?: () => Date }
-    const date = ts.toDate ? ts.toDate() : new Date(String(timestamp))
-    return format(date, 'dd/MM/yyyy - HH:mm', { locale: ptBR })
-  }
-
-  const proximasTarefas = stats?.tarefas
-    .filter((t) => t.status !== 'done')
-    .sort((a, b) => {
-      if (!a.prazo) return 1
-      if (!b.prazo) return -1
-      const dateA = a.prazo.toDate()
-      const dateB = b.prazo.toDate()
-      return dateA.getTime() - dateB.getTime()
+  const grafico = useMemo(() => {
+    if (!dados) return []
+    const agora = new Date()
+    const meses = Array.from({ length: 6 }, (_, i) =>
+      startOfMonth(subMonths(agora, 5 - i))
+    )
+    return meses.map((mes) => {
+      const receitas = dados.transacoes
+        .filter((t) => {
+          const d = paraDate(t.data)
+          return (
+            d &&
+            t.tipo === 'receita' &&
+            d.getFullYear() === mes.getFullYear() &&
+            d.getMonth() === mes.getMonth()
+          )
+        })
+        .reduce((s, t) => s + t.valor, 0)
+      const despesas = dados.transacoes
+        .filter((t) => {
+          const d = paraDate(t.data)
+          return (
+            d &&
+            t.tipo === 'despesa' &&
+            d.getFullYear() === mes.getFullYear() &&
+            d.getMonth() === mes.getMonth()
+          )
+        })
+        .reduce((s, t) => s + t.valor, 0)
+      return { mes: format(mes, 'MMM', { locale: ptBR }), receitas, despesas }
     })
-    .slice(0, 3) || []
+  }, [dados])
+
+  const atividade = useMemo(() => {
+    if (!dados) return []
+    const itens: {
+      id: string
+      tipo: 'agendamento' | 'tarefa'
+      titulo: string
+      detalhe: string
+      data: number
+    }[] = []
+    dados.agendamentos.forEach((a) => {
+      const d = paraDate(a.data)
+      itens.push({
+        id: `a-${a.id}`,
+        tipo: 'agendamento',
+        titulo: a.titulo,
+        detalhe: `Agendamento · ${formatarData(a.data)}`,
+        data: d ? d.getTime() : 0,
+      })
+    })
+    dados.tarefas.forEach((t) => {
+      const d = paraDate(t.criadoEm)
+      itens.push({
+        id: `t-${t.id}`,
+        tipo: 'tarefa',
+        titulo: t.titulo,
+        detalhe: `Tarefa criada · ${formatarData(t.criadoEm)}`,
+        data: d ? d.getTime() : 0,
+      })
+    })
+    return itens.sort((a, b) => b.data - a.data).slice(0, 6)
+  }, [dados])
 
   if (loading) {
     return (
@@ -140,177 +163,219 @@ export default function Dashboard() {
     )
   }
 
-  const cards: {
-    title: string
-    total: number
-    icon: React.ReactNode
-    tone: CardTone
-    href: string
-    items: { id: string; titulo: string; subtitulo: string }[]
-    emptyMessage: string
-  }[] = [
-    {
-      title: 'Clientes',
-      total: stats?.totalClientes || 0,
-      icon: <Users className="h-8 w-8" />,
-      tone: 'info',
-      href: '/clientes',
-      items: stats?.clientes.slice(0, 3).map((c) => ({
-        id: c.id,
-        titulo: c.nome,
-        subtitulo: c.empresa || c.email || 'Sem detalhes',
-      })) || [],
-      emptyMessage: 'Nenhum cliente cadastrado',
-    },
-    {
-      title: 'Tarefas',
-      total: stats?.totalTarefas || 0,
-      icon: <CheckSquare className="h-8 w-8" />,
-      tone: 'warning',
-      href: '/tarefas',
-      items: proximasTarefas.map((t) => ({
-        id: t.id,
-        titulo: t.titulo,
-        subtitulo: t.prazo ? formatarData(t.prazo) : 'Sem prazo',
-      })),
-      emptyMessage: 'Nenhuma tarefa encontrada',
-    },
-  ]
+  const maxValor = Math.max(1, ...grafico.flatMap((m) => [m.receitas, m.despesas]))
+  const chartHeight = 140
+  const chartWidth = 320
 
-  const renderFooter = (href: string, tone: CardTone) => {
-    const s = cardStyles[tone]
-    return (
-      <div
-        className={cn(
-          'border-t px-6 py-3 text-center text-sm font-medium transition-colors',
-          s.footerBg,
-          s.footerBorder,
-          s.iconColor,
-          'hover:opacity-80'
-        )}
-      >
-        Ver todos →
-      </div>
-    )
-  }
-
-  const renderItems = (
-    items: { id: string; titulo: string; subtitulo: string }[],
-    emptyMessage: string
-  ) => {
-    if (items.length > 0) {
-      return items.map((item) => (
-        <div
-          key={item.id}
-          className="flex items-center justify-between rounded-lg bg-muted px-3 py-2"
-        >
-          <span className="truncate text-sm font-medium text-foreground">
-            {item.titulo}
-          </span>
-          <span className="ml-2 whitespace-nowrap text-xs text-muted-foreground">
-            {item.subtitulo}
-          </span>
-        </div>
-      ))
-    }
-    return (
-      <p className="py-4 text-center text-sm text-muted-foreground">
-        {emptyMessage}
-      </p>
-    )
-  }
+  const kpiCards = kpis
+    ? [
+        {
+          label: 'Clientes',
+          valor: String(dados?.clientes.length ?? 0),
+          icon: <Users className="h-5 w-5" />,
+          cor: 'text-info',
+          bg: 'bg-info/10',
+          href: '/clientes',
+        },
+        {
+          label: 'Tarefas pendentes',
+          valor: String(kpis.tarefasPendentes),
+          icon: <CheckSquare className="h-5 w-5" />,
+          cor: 'text-warning',
+          bg: 'bg-warning/10',
+          href: '/tarefas',
+        },
+        {
+          label: 'Agendamentos',
+          valor: String(dados?.agendamentos.length ?? 0),
+          icon: <Calendar className="h-5 w-5" />,
+          cor: 'text-primary',
+          bg: 'bg-primary/10',
+          href: '/agendamentos',
+        },
+        {
+          label: 'Saldo',
+          valor: formatarValor(kpis.saldo),
+          icon: <Wallet className="h-5 w-5" />,
+          cor: 'text-success',
+          bg: 'bg-success/10',
+          href: '/financeiro',
+        },
+      ]
+    : []
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {cards.map((card) => {
-        const s = cardStyles[card.tone]
-        return (
-          <Card
-            key={card.title}
-            onClick={() => router.push(card.href)}
-            className="cursor-pointer overflow-hidden transition-shadow hover:shadow-soft-lg"
-          >
-            <CardContent className="flex h-full flex-col gap-4 p-6">
-              <div className="flex items-center justify-between">
-                <div className={cn('rounded-xl p-3', s.iconBg)}>
-                  <div className={s.iconColor}>{card.icon}</div>
-                </div>
-                <span className="text-3xl font-bold text-foreground">
-                  {card.total}
-                </span>
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {kpiCards.map((kpi) => (
+          <Card key={kpi.label} padded className="cursor-pointer hover:shadow-soft-lg">
+            <button
+              type="button"
+              onClick={() => router.push(kpi.href)}
+              className="flex w-full items-center gap-4 text-left"
+            >
+              <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${kpi.bg} ${kpi.cor}`}>
+                {kpi.icon}
               </div>
-
-              <h2 className="text-xl font-semibold text-foreground">
-                {card.title}
-              </h2>
-
-              <div className="mt-1 space-y-2">
-                {renderItems(card.items, card.emptyMessage)}
+              <div>
+                <p className="text-sm text-muted-foreground">{kpi.label}</p>
+                <p className="text-xl font-bold text-foreground">{kpi.valor}</p>
               </div>
-            </CardContent>
-            {renderFooter(card.href, card.tone)}
+            </button>
           </Card>
-        )
-      })}
+        ))}
+      </div>
 
-      <Card
-        onClick={() => router.push('/agendamentos')}
-        className="cursor-pointer overflow-hidden transition-shadow hover:shadow-soft-lg"
-      >
-        <CardContent className="flex h-full flex-col gap-4 p-6">
-          <div className="flex items-center justify-between">
-            <div className={cn('rounded-xl p-3', cardStyles.success.iconBg)}>
-              <div className={cardStyles.success.iconColor}>
-                <Calendar className="h-8 w-8" />
-              </div>
-            </div>
-            <span className="text-3xl font-bold text-foreground">
-              {stats?.totalAgendamentos || 0}
-            </span>
-          </div>
-
-          <h2 className="text-xl font-semibold text-foreground">
-            Próximos Agendamentos
-          </h2>
-
-          <div className="overflow-hidden rounded-xl border border-border bg-card">
-            {stats?.proximosAgendamentos &&
-            stats.proximosAgendamentos.length > 0 ? (
-              <ul className="divide-y divide-border">
-                {stats.proximosAgendamentos.map((agendamento) => {
-                  const cliente = stats.clientes.find(
-                    (c) => c.id === agendamento.clienteId
-                  )
-                  return (
-                    <li key={agendamento.id} className="px-4 py-3 hover:bg-muted">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {agendamento.titulo}
-                          </p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {formatarDataHora(agendamento.data)} - Cliente:{' '}
-                            {cliente?.nome || 'Não informado'}
-                          </p>
-                        </div>
-                        <ChevronRight className="ml-2 shrink-0 text-muted-foreground" />
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Receitas × Despesas (6 meses)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {grafico.every((m) => m.receitas === 0 && m.despesas === 0) ? (
+              <EmptyState
+                title="Sem movimentações"
+                description="Registre transações para ver o gráfico."
+              />
             ) : (
-              <div className="px-4 py-8 text-center">
-                <Calendar className="mx-auto mb-2 text-muted-foreground/60" size={32} />
-                <p className="text-sm text-muted-foreground">
-                  Nenhum agendamento encontrado
-                </p>
+              <div className="mt-4">
+                <svg
+                  viewBox={`0 0 ${chartWidth} ${chartHeight + 30}`}
+                  className="w-full"
+                  role="img"
+                  aria-label="Gráfico de receitas e despesas dos últimos 6 meses"
+                >
+                  {grafico.map((m, i) => {
+                    const groupW = chartWidth / grafico.length
+                    const x = i * groupW + groupW * 0.25
+                    const barW = groupW * 0.2
+                    const hR = (m.receitas / maxValor) * chartHeight
+                    const hD = (m.despesas / maxValor) * chartHeight
+                    return (
+                      <g key={m.mes}>
+                        <rect
+                          x={x}
+                          y={chartHeight - hR}
+                          width={barW}
+                          height={hR}
+                          rx={3}
+                          className="fill-success"
+                        />
+                        <rect
+                          x={x + barW + 4}
+                          y={chartHeight - hD}
+                          width={barW}
+                          height={hD}
+                          rx={3}
+                          className="fill-destructive"
+                        />
+                        <text
+                          x={x + barW + 2}
+                          y={chartHeight + 18}
+                          textAnchor="middle"
+                          className="fill-muted-foreground"
+                          fontSize={11}
+                        >
+                          {m.mes}
+                        </text>
+                      </g>
+                    )
+                  })}
+                </svg>
+                <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-success" /> Receitas
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-destructive" /> Despesas
+                  </span>
+                </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between text-base">
+              Atividade recente
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/dashboard')}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {atividade.length === 0 ? (
+              <EmptyState
+                title="Sem atividade"
+                description="As ações recentes aparecerão aqui."
+              />
+            ) : (
+              <ul className="divide-y divide-border">
+                {atividade.map((item) => (
+                  <li key={item.id} className="flex items-start gap-3 py-2.5">
+                    <div
+                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                        item.tipo === 'agendamento'
+                          ? 'bg-info/10 text-info'
+                          : 'bg-warning/10 text-warning'
+                      }`}
+                    >
+                      {item.tipo === 'agendamento' ? (
+                        <Calendar className="h-4 w-4" />
+                      ) : (
+                        <CheckSquare className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {item.titulo}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{item.detalhe}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card padded>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10 text-success">
+              <TrendingUp className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Receitas</p>
+              <p className="text-lg font-bold text-foreground">
+                {formatarValor(kpis?.receitas ?? 0)}
+              </p>
+            </div>
           </div>
-        </CardContent>
-        {renderFooter('/agendamentos', 'success')}
-      </Card>
+        </Card>
+        <Card padded>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+              <TrendingDown className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Despesas</p>
+              <p className="text-lg font-bold text-foreground">
+                {formatarValor(kpis?.despesas ?? 0)}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }

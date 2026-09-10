@@ -7,12 +7,14 @@ import { listarClientes, excluirCliente } from '@/lib/firebase-services'
 import { Cliente } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Plus, Search, Trash2, Eye } from 'lucide-react'
 
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
+  const [excluindoId, setExcluindoId] = useState<string | null>(null)
 
   const carregarClientes = async () => {
     const user = auth.currentUser
@@ -28,11 +30,11 @@ export default function ClientesPage() {
     carregarClientes() // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
 
-  const handleExcluir = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este cliente?')) {
-      await excluirCliente(id)
-      carregarClientes()
-    }
+  const confirmarExclusao = async () => {
+    if (!excluindoId) return
+    await excluirCliente(excluindoId)
+    setExcluindoId(null)
+    carregarClientes()
   }
 
   const clientesFiltrados = clientes.filter(
@@ -110,7 +112,7 @@ export default function ClientesPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-red-500 hover:text-red-600"
-                      onClick={() => handleExcluir(cliente.id)}
+                      onClick={() => setExcluindoId(cliente.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -143,6 +145,15 @@ export default function ClientesPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!excluindoId}
+        title="Excluir cliente"
+        description="Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={confirmarExclusao}
+        onCancel={() => setExcluindoId(null)}
+      />
     </div>
   )
 }
