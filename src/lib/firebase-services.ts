@@ -175,16 +175,20 @@ export async function excluirTarefa(id: string) {
 }
 
 // Usuários
+function semIndefinidos<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, valor]) => valor !== undefined)
+  ) as T
+}
+
 export async function salvarUsuario(usuario: Omit<Usuario, 'criadoEm'>) {
   const docRef = doc(db, 'usuarios', usuario.uid)
   const snap = await getDoc(docRef)
+  const dadosLimpos = semIndefinidos({ ...usuario, criadoEm: Timestamp.now() })
   if (snap.exists()) {
-    await updateDoc(docRef, { nome: usuario.nome, photoURL: usuario.photoURL })
+    await updateDoc(docRef, semIndefinidos({ nome: usuario.nome, photoURL: usuario.photoURL }))
   } else {
-    await setDoc(docRef, {
-      ...usuario,
-      criadoEm: Timestamp.now(),
-    })
+    await setDoc(docRef, dadosLimpos)
   }
 }
 
