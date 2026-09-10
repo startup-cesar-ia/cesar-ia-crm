@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface Resultado<T, C> {
   itens: T[]
@@ -16,30 +16,37 @@ export function usePaginado<T, C = unknown>(
   const [temMais, setTemMais] = useState(false)
   const [carregando, setCarregando] = useState(false)
 
+  // Mantém sempre a última versão de `buscar` sem fazer as funções
+  // mudarem de identidade a cada render (evita loop de re-render no useEffect).
+  const buscarRef = useRef(buscar)
+  useEffect(() => {
+    buscarRef.current = buscar
+  })
+
   const carregarPrimeira = useCallback(async () => {
     setCarregando(true)
     try {
-      const r = await buscar(qtd, null)
+      const r = await buscarRef.current(qtd, null)
       setItens(r.itens)
       setCursor(r.proximoCursor)
       setTemMais(!!r.proximoCursor)
     } finally {
       setCarregando(false)
     }
-  }, [buscar, qtd])
+  }, [qtd])
 
   const carregarMais = useCallback(async () => {
     if (!cursor || carregando) return
     setCarregando(true)
     try {
-      const r = await buscar(qtd, cursor)
+      const r = await buscarRef.current(qtd, cursor)
       setItens((prev) => [...prev, ...r.itens])
       setCursor(r.proximoCursor)
       setTemMais(!!r.proximoCursor)
     } finally {
       setCarregando(false)
     }
-  }, [buscar, qtd, cursor, carregando])
+  }, [qtd, cursor, carregando])
 
   return { itens, setItens, carregando, temMais, carregarPrimeira, carregarMais }
 }
