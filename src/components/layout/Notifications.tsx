@@ -124,7 +124,7 @@ export function Notifications() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl border border-border bg-card shadow-soft-lg">
+        <div className="absolute right-0 top-12 z-50 w-80 max-w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-border bg-card shadow-soft-lg">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <p className="text-sm font-semibold text-foreground">Notificações</p>
             {total > 0 && (

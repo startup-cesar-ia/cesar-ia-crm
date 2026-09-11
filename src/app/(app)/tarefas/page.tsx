@@ -296,7 +296,7 @@ export default function TarefasPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="-mx-4 grid grid-flow-col auto-cols-[minmax(250px,1fr)] gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid-flow-row md:grid-cols-2 md:px-0 lg:grid-cols-4">
           {colunas.map((coluna) => {
             const tarefasColuna = filtradas.filter((t) => t.status === coluna.id)
             return (

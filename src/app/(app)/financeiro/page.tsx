@@ -358,8 +358,8 @@ export default function FinanceiroPage() {
             const receita = transacao.tipo === 'receita'
             return (
               <Card key={transacao.id}>
-                <CardContent className="flex items-center justify-between gap-4 p-4">
-                  <div className="flex items-center gap-3">
+                <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div
                       className={`flex h-10 w-10 items-center justify-center rounded-xl ${
                         receita ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
@@ -382,7 +382,7 @@ export default function FinanceiroPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <Badge variant={transacao.status === 'pago' ? 'success' : 'warning'}>
                       {transacao.status === 'pago' ? 'Pago' : 'Pendente'}
                     </Badge>
