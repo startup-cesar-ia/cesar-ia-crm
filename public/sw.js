@@ -1,51 +1,61 @@
 const CACHE_NAME = 'cesar-ia-crm-v1'
-const urlsToCache = [
-  '/',
-  '/dashboard',
-  '/clientes',
-  '/agendamentos',
-  '/tarefas',
-  '/login',
-]
+const urlsToCache = ['/', '/login', '/dashboard']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache)
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   )
+  self.skipWaiting()
 })
 
+// Navegações: network-first com fallback para o cache (evita HTML obsoleto).
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response
-      }
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
+  const { request } = event
+  if (request.method !== 'GET') return
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
           return response
-        }
-        const responseToCache = response.clone()
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache)
         })
-        return response
-      })
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match('/'))
+        )
+    )
+    return
+  }
+
+  // Demais requisições: cache-first com atualização em segundo plano.
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      const fetchPromise = fetch(request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const copy = response.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
+          }
+          return response
+        })
+        .catch(() => cached)
+      return cached || fetchPromise
     })
   )
 })
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName)
-          }
-        })
+    caches
+      .keys()
+      .then((cacheNames) =>
+        Promise.all(
+          cacheNames
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => caches.delete(name))
+        )
       )
-    })
+      .then(() => self.clients.claim())
   )
 })

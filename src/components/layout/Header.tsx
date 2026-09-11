@@ -7,6 +7,7 @@ import { User } from 'firebase/auth'
 import { Search, Menu, ArrowLeft } from 'lucide-react'
 import { useSearch } from '@/lib/search-context'
 import { Notifications } from '@/components/layout/Notifications'
+import { InstallButton } from '@/components/pwa/install-button'
 
 interface HeaderProps {
   onOpenSidebar: () => void
@@ -98,6 +99,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             </button>
 
             <Notifications />
+            <InstallButton />
 
             {/* Perfil */}
             <Link
