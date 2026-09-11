@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -41,11 +42,16 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      {/* Placeholder da logomarca oficial */}
-      <div className="px-5 pt-6 pb-2">
-        <div className="flex h-16 items-center justify-center rounded-2xl border-2 border-dashed border-white/15 text-xs font-semibold uppercase tracking-[0.2em] text-sidebar-muted">
-          Logo aqui
-        </div>
+      {/* Logomarca */}
+      <div className="px-5 pb-2 pt-6">
+        <Image
+          src="/logo-cesar.png"
+          alt="César IA"
+          width={513}
+          height={193}
+          priority
+          className="mx-auto h-auto w-full"
+        />
       </div>
 
       {/* Navegação */}
