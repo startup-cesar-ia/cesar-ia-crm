@@ -23,7 +23,14 @@ export default function ErrorBoundary({
         title="Algo deu errado"
         description="Ocorreu um erro inesperado. Você pode tentar novamente."
         action={
-          <Button onClick={reset}>Tentar novamente</Button>
+          <div className="flex flex-col items-center gap-3">
+            <Button onClick={reset}>Tentar novamente</Button>
+            {process.env.NODE_ENV !== 'production' && (
+              <pre className="mt-2 max-w-lg whitespace-pre-wrap rounded-lg bg-muted p-3 text-left text-xs text-muted-foreground">
+                {String(error?.message || error)}
+              </pre>
+            )}
+          </div>
         }
       />
     </div>

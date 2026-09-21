@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cesar-ia-crm-v1'
+const CACHE_NAME = 'cesar-ia-crm-v2'
 const urlsToCache = ['/', '/login', '/dashboard']
 
 self.addEventListener('install', (event) => {
@@ -12,6 +12,13 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
+
+  // Recursos do Next.js ficam a cargo do cache HTTP do navegador.
+  const url = new URL(request.url)
+  if (url.origin === self.location.origin && url.pathname.startsWith('/_next/')) {
+    return
+  }
+  if (request.url.includes('/sw.js')) return
 
   if (request.mode === 'navigate') {
     event.respondWith(

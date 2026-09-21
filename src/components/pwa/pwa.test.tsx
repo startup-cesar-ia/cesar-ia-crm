@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { InstallButton } from './install-button'
@@ -31,7 +31,12 @@ describe('InstallButton', () => {
 })
 
 describe('RegisterSW', () => {
-  it('registra o service worker em /sw.js', async () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('registra o service worker em /sw.js em produção', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
     const register = vi.fn().mockResolvedValue({})
     Object.defineProperty(navigator, 'serviceWorker', {
       value: { register },
@@ -40,5 +45,20 @@ describe('RegisterSW', () => {
     render(<RegisterSW />)
     window.dispatchEvent(new Event('load'))
     await waitFor(() => expect(register).toHaveBeenCalledWith('/sw.js'))
+  })
+
+  it('remove o service worker e limpa caches em desenvolvimento', async () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    const unregister = vi.fn().mockResolvedValue(true)
+    const getRegistrations = vi.fn().mockResolvedValue([{ unregister }])
+    const register = vi.fn()
+    Object.defineProperty(navigator, 'serviceWorker', {
+      value: { register, getRegistrations },
+      configurable: true,
+    })
+    render(<RegisterSW />)
+    await waitFor(() => expect(getRegistrations).toHaveBeenCalled())
+    expect(unregister).toHaveBeenCalled()
+    expect(register).not.toHaveBeenCalled()
   })
 })
