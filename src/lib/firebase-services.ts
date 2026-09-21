@@ -49,6 +49,12 @@ function basePaginado(
   return query(collection(db, colecao), ...restricoes)
 }
 
+function semIndefinidos<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, valor]) => valor !== undefined)
+  ) as T
+}
+
 function paraMillis(valor: unknown): number {
   if (!valor) return 0
   if (typeof valor === 'object' && valor !== null && 'toDate' in valor && typeof (valor as { toDate: () => Date }).toDate === 'function') {
@@ -85,7 +91,7 @@ export async function contarAgendamentos(usuarioId: string) {
 // Clientes
 export async function criarCliente(cliente: Omit<Cliente, 'id' | 'criadoEm' | 'atualizadoEm'>) {
   const docRef = await addDoc(collection(db, 'clientes'), {
-    ...cliente,
+    ...semIndefinidos(cliente),
     criadoEm: Timestamp.now(),
     atualizadoEm: Timestamp.now(),
   })
@@ -115,7 +121,7 @@ export async function buscarCliente(id: string) {
 export async function atualizarCliente(id: string, dados: Partial<Cliente>) {
   const docRef = doc(db, 'clientes', id)
   await updateDoc(docRef, {
-    ...dados,
+    ...semIndefinidos(dados),
     atualizadoEm: Timestamp.now(),
   })
 }
@@ -128,7 +134,7 @@ export async function excluirCliente(id: string) {
 // Agendamentos
 export async function criarAgendamento(agendamento: Omit<Agendamento, 'id' | 'criadoEm'>) {
   const docRef = await addDoc(collection(db, 'agendamentos'), {
-    ...agendamento,
+    ...semIndefinidos(agendamento),
     criadoEm: Timestamp.now(),
   })
   return docRef.id
@@ -147,7 +153,7 @@ export async function listarAgendamentos(usuarioId: string) {
 
 export async function atualizarAgendamento(id: string, dados: Partial<Agendamento>) {
   const docRef = doc(db, 'agendamentos', id)
-  await updateDoc(docRef, dados)
+  await updateDoc(docRef, semIndefinidos(dados))
 }
 
 export async function excluirAgendamento(id: string) {
@@ -158,7 +164,7 @@ export async function excluirAgendamento(id: string) {
 // Tarefas
 export async function criarTarefa(tarefa: Omit<Tarefa, 'id' | 'criadoEm'>) {
   const docRef = await addDoc(collection(db, 'tarefas'), {
-    ...tarefa,
+    ...semIndefinidos(tarefa),
     criadoEm: Timestamp.now(),
   })
   return docRef.id
@@ -177,7 +183,7 @@ export async function listarTarefas(usuarioId: string) {
 
 export async function atualizarTarefa(id: string, dados: Partial<Tarefa>) {
   const docRef = doc(db, 'tarefas', id)
-  await updateDoc(docRef, dados)
+  await updateDoc(docRef, semIndefinidos(dados))
 }
 
 export async function excluirTarefa(id: string) {
@@ -186,12 +192,6 @@ export async function excluirTarefa(id: string) {
 }
 
 // Usuários
-function semIndefinidos<T extends Record<string, unknown>>(obj: T): T {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([, valor]) => valor !== undefined)
-  ) as T
-}
-
 export async function salvarUsuario(usuario: Omit<Usuario, 'criadoEm'>) {
   const docRef = doc(db, 'usuarios', usuario.uid)
   const snap = await getDoc(docRef)
@@ -217,7 +217,7 @@ export async function criarTransacao(
   transacao: Omit<Transacao, 'id' | 'criadoEm'>
 ) {
   const docRef = await addDoc(collection(db, 'transacoes'), {
-    ...transacao,
+    ...semIndefinidos(transacao),
     criadoEm: Timestamp.now(),
   })
   return docRef.id
@@ -239,7 +239,7 @@ export async function atualizarTransacao(
   dados: Partial<Transacao>
 ) {
   const docRef = doc(db, 'transacoes', id)
-  await updateDoc(docRef, dados)
+  await updateDoc(docRef, semIndefinidos(dados))
 }
 
 export async function excluirTransacao(id: string) {
@@ -302,7 +302,7 @@ export async function criarNota(
   nota: Omit<Nota, 'id' | 'criadoEm' | 'atualizadoEm'>
 ) {
   const docRef = await addDoc(collection(db, 'notas'), {
-    ...nota,
+    ...semIndefinidos(nota),
     criadoEm: Timestamp.now(),
     atualizadoEm: Timestamp.now(),
   })
@@ -332,7 +332,7 @@ export async function buscarNota(id: string) {
 export async function atualizarNota(id: string, dados: Partial<Nota>) {
   const docRef = doc(db, 'notas', id)
   await updateDoc(docRef, {
-    ...dados,
+    ...semIndefinidos(dados),
     atualizadoEm: Timestamp.now(),
   })
 }
