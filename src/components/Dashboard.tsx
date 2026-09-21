@@ -8,9 +8,11 @@ import {
   listarTarefas,
   listarAgendamentos,
   listarTransacoes,
+  listarNotas,
+  listarArquivos,
 } from '@/lib/firebase-services'
-import { Cliente, Agendamento, Tarefa, Transacao } from '@/types'
-import { Users, CheckSquare, Calendar, AlertCircle, ChevronRight, Wallet, TrendingUp, TrendingDown } from 'lucide-react'
+import { Cliente, Agendamento, Tarefa, Transacao, Nota, Arquivo } from '@/types'
+import { Users, CheckSquare, Calendar, AlertCircle, ChevronRight, Wallet, TrendingUp, TrendingDown, StickyNote, FolderOpen } from 'lucide-react'
 import { format, subMonths, startOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,6 +26,8 @@ interface DashboardData {
   tarefas: Tarefa[]
   agendamentos: Agendamento[]
   transacoes: Transacao[]
+  notas: Nota[]
+  arquivos: Arquivo[]
 }
 
 function formatarValor(valor: number) {
@@ -49,13 +53,15 @@ export default function Dashboard() {
     try {
       setLoading(true)
       setError(null)
-      const [clientes, tarefas, agendamentos, transacoes] = await Promise.all([
+      const [clientes, tarefas, agendamentos, transacoes, notas, arquivos] = await Promise.all([
         listarClientes(user.uid),
         listarTarefas(user.uid),
         listarAgendamentos(user.uid),
         listarTransacoes(user.uid),
+        listarNotas(user.uid),
+        listarArquivos(user.uid),
       ])
-      setDados({ clientes, tarefas, agendamentos, transacoes })
+      setDados({ clientes, tarefas, agendamentos, transacoes, notas, arquivos })
     } catch {
       setError('Erro ao carregar dados. Tente novamente.')
     } finally {
@@ -116,7 +122,7 @@ export default function Dashboard() {
     if (!dados) return []
     const itens: {
       id: string
-      tipo: 'agendamento' | 'tarefa'
+      tipo: 'agendamento' | 'tarefa' | 'nota' | 'arquivo'
       titulo: string
       detalhe: string
       data: number
@@ -138,6 +144,26 @@ export default function Dashboard() {
         tipo: 'tarefa',
         titulo: t.titulo,
         detalhe: `Tarefa criada · ${formatarData(t.criadoEm)}`,
+        data: d ? d.getTime() : 0,
+      })
+    })
+    dados.notas.forEach((n) => {
+      const d = paraDate(n.atualizadoEm)
+      itens.push({
+        id: `n-${n.id}`,
+        tipo: 'nota',
+        titulo: n.titulo,
+        detalhe: `Nota atualizada · ${formatarData(n.atualizadoEm)}`,
+        data: d ? d.getTime() : 0,
+      })
+    })
+    dados.arquivos.forEach((arq) => {
+      const d = paraDate(arq.criadoEm)
+      itens.push({
+        id: `f-${arq.id}`,
+        tipo: 'arquivo',
+        titulo: arq.nome,
+        detalhe: `Arquivo enviado · ${formatarData(arq.criadoEm)}`,
         data: d ? d.getTime() : 0,
       })
     })
@@ -201,12 +227,28 @@ export default function Dashboard() {
           bg: 'bg-success/10',
           href: '/financeiro',
         },
+        {
+          label: 'Notas',
+          valor: String(dados?.notas.length ?? 0),
+          icon: <StickyNote className="h-5 w-5" />,
+          cor: 'text-warning',
+          bg: 'bg-warning/10',
+          href: '/notas',
+        },
+        {
+          label: 'Arquivos',
+          valor: String(dados?.arquivos.length ?? 0),
+          icon: <FolderOpen className="h-5 w-5" />,
+          cor: 'text-info',
+          bg: 'bg-info/10',
+          href: '/arquivos',
+        },
       ]
     : []
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpiCards.map((kpi) => (
           <Card key={kpi.label} padded className="cursor-pointer hover:shadow-soft-lg">
             <button
@@ -319,29 +361,29 @@ export default function Dashboard() {
               />
             ) : (
               <ul className="divide-y divide-border">
-                {atividade.map((item) => (
-                  <li key={item.id} className="flex items-start gap-3 py-2.5">
-                    <div
-                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                        item.tipo === 'agendamento'
-                          ? 'bg-info/10 text-info'
-                          : 'bg-warning/10 text-warning'
-                      }`}
-                    >
-                      {item.tipo === 'agendamento' ? (
-                        <Calendar className="h-4 w-4" />
-                      ) : (
-                        <CheckSquare className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {item.titulo}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{item.detalhe}</p>
-                    </div>
-                  </li>
-                ))}
+                {atividade.map((item) => {
+                  const visual = {
+                    agendamento: { cls: 'bg-info/10 text-info', icon: <Calendar className="h-4 w-4" /> },
+                    tarefa: { cls: 'bg-warning/10 text-warning', icon: <CheckSquare className="h-4 w-4" /> },
+                    nota: { cls: 'bg-primary/10 text-primary', icon: <StickyNote className="h-4 w-4" /> },
+                    arquivo: { cls: 'bg-success/10 text-success', icon: <FolderOpen className="h-4 w-4" /> },
+                  }[item.tipo]
+                  return (
+                    <li key={item.id} className="flex items-start gap-3 py-2.5">
+                      <div
+                        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${visual.cls}`}
+                      >
+                        {visual.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {item.titulo}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{item.detalhe}</p>
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </CardContent>

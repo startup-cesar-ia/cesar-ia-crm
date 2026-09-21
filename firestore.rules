@@ -41,5 +41,19 @@ service cloud.firestore {
       allow update: if isOwner() && isOwnerForCreate();
       allow delete: if isOwner();
     }
+
+    match /notas/{id} {
+      allow read: if isOwner();
+      allow create: if isOwnerForCreate();
+      allow update: if isOwner() && isOwnerForCreate();
+      allow delete: if isOwner();
+    }
+
+    match /arquivos/{id} {
+      allow read: if isOwner();
+      allow create: if isOwnerForCreate();
+      allow update: if isOwner() && isOwnerForCreate();
+      allow delete: if isOwner();
+    }
   }
 }

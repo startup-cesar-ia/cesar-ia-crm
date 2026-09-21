@@ -27,6 +27,14 @@ const pageMeta: Record<string, { title: string; description: string }> = {
     title: 'Tarefas',
     description: 'Acompanhe suas tarefas e prazos.',
   },
+  '/notas': {
+    title: 'Notas',
+    description: 'Registre ideias, textos e documentos.',
+  },
+  '/arquivos': {
+    title: 'Arquivos',
+    description: 'Guarde e abra seus arquivos em um só lugar.',
+  },
   '/financeiro': {
     title: 'Financeiro',
     description: 'Controle suas receitas e despesas.',

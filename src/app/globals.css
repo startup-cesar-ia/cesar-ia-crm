@@ -95,6 +95,67 @@
   }
 }
 
+/* Editor de notas (TipTap/ProseMirror) */
+.nota-conteudo .ProseMirror {
+  min-height: 300px;
+  padding: 1rem;
+  outline: none;
+}
+.nota-conteudo .ProseMirror:focus {
+  outline: none;
+}
+.nota-conteudo h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0.5em 0 0.25em;
+}
+.nota-conteudo h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0.5em 0 0.25em;
+}
+.nota-conteudo h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0.5em 0 0.25em;
+}
+.nota-conteudo p {
+  margin: 0.4em 0;
+}
+.nota-conteudo ul {
+  list-style: disc;
+  padding-left: 1.5em;
+  margin: 0.4em 0;
+}
+.nota-conteudo ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+  margin: 0.4em 0;
+}
+.nota-conteudo blockquote {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 0.75em;
+  color: var(--color-muted-foreground);
+  margin: 0.4em 0;
+}
+.nota-conteudo code {
+  background: var(--color-muted);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+.nota-conteudo pre {
+  background: #1a1c20;
+  color: #f4f1ea;
+  padding: 0.75em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.nota-conteudo pre code {
+  background: transparent;
+}
+
 /* Calendário (react-day-picker) — alinhado à marca */
 .rdp-root {
   --rdp-accent-color: var(--color-primary);

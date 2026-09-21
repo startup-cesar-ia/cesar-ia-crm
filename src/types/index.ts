@@ -65,3 +65,42 @@ export interface Transacao {
 
 export const CATEGORIAS_RECEITA = ['Vendas', 'Serviços', 'Consultoria', 'Outros']
 export const CATEGORIAS_DESPESA = ['Fornecedores', 'Marketing', 'Equipamentos', 'Pessoal', 'Outros']
+
+export interface Nota {
+  id: string
+  usuarioId: string
+  titulo: string
+  conteudo: string
+  tags: string[]
+  criadoEm: Timestamp
+  atualizadoEm: Timestamp
+}
+
+export type TipoVinculo = 'nota' | 'cliente' | 'tarefa'
+
+export interface VinculoArquivo {
+  tipo: TipoVinculo
+  id: string
+}
+
+export interface Arquivo {
+  id: string
+  usuarioId: string
+  nome: string
+  tipo: string
+  tamanho: number
+  dados: string
+  vinculo?: VinculoArquivo
+  criadoEm: Timestamp
+}
+
+export type CategoriaArquivo = 'imagem' | 'pdf' | 'texto' | 'outros'
+
+export const CATEGORIAS_ARQUIVO: Record<CategoriaArquivo, string> = {
+  imagem: 'Imagem',
+  pdf: 'PDF',
+  texto: 'Texto',
+  outros: 'Outros',
+}
+
+export const TAMANHO_MAXIMO_ARQUIVO_BYTES = 700 * 1024

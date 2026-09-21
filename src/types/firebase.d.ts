@@ -40,6 +40,7 @@ declare module 'firebase/firestore' {
   export function orderBy(field: string, direction?: 'asc' | 'desc'): any
   export function limit(n: number): any
   export function startAfter(value: any): any
+  export function deleteField(): FieldValue
   export function getFirestore(app?: any): Firestore
 }
 

@@ -8,6 +8,8 @@ import {
   Users,
   Calendar,
   CheckSquare,
+  StickyNote,
+  FolderOpen,
   Wallet,
   Settings,
   LogOut,
@@ -22,6 +24,8 @@ const navigation = [
   { name: 'Clientes', href: '/clientes', icon: Users },
   { name: 'Agendamentos', href: '/agendamentos', icon: Calendar },
   { name: 'Tarefas', href: '/tarefas', icon: CheckSquare },
+  { name: 'Notas', href: '/notas', icon: StickyNote },
+  { name: 'Arquivos', href: '/arquivos', icon: FolderOpen },
   { name: 'Financeiro', href: '/financeiro', icon: Wallet },
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ]

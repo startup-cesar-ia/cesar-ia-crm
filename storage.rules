@@ -6,5 +6,10 @@ service firebase.storage {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if request.auth != null && request.auth.uid == uid;
     }
+    // Arquivos do usuário: cada usuário acessa apenas a própria pasta.
+    match /uploads/{uid}/{file} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
   }
 }

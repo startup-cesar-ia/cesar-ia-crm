@@ -12,11 +12,22 @@ import {
   orderBy,
   limit,
   startAfter,
+  deleteField,
   Timestamp,
   QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { Cliente, Agendamento, Tarefa, Transacao, Usuario } from '@/types'
+import {
+  Cliente,
+  Agendamento,
+  Tarefa,
+  Transacao,
+  Usuario,
+  Nota,
+  Arquivo,
+  VinculoArquivo,
+  TAMANHO_MAXIMO_ARQUIVO_BYTES,
+} from '@/types'
 
 interface Paginado<T> {
   itens: T[]
@@ -283,5 +294,146 @@ export async function listarTransacoesPaginado(
   const itens = snapshot.docs
     .map((d) => ({ id: d.id, ...d.data() }) as Transacao)
     .sort((a, b) => paraMillis(b.data) - paraMillis(a.data))
+  return { itens, proximoCursor: snapshot.docs.at(-1) ?? null }
+}
+
+// Notas
+export async function criarNota(
+  nota: Omit<Nota, 'id' | 'criadoEm' | 'atualizadoEm'>
+) {
+  const docRef = await addDoc(collection(db, 'notas'), {
+    ...nota,
+    criadoEm: Timestamp.now(),
+    atualizadoEm: Timestamp.now(),
+  })
+  return docRef.id
+}
+
+export async function listarNotas(usuarioId: string) {
+  const q = query(
+    collection(db, 'notas'),
+    where('usuarioId', '==', usuarioId)
+  )
+  const snapshot = await getDocs(q)
+  return snapshot.docs
+    .map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() }) as Nota)
+    .sort((a: Nota, b: Nota) => paraMillis(b.atualizadoEm) - paraMillis(a.atualizadoEm))
+}
+
+export async function buscarNota(id: string) {
+  const docRef = doc(db, 'notas', id)
+  const docSnap = await getDoc(docRef)
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as Nota
+  }
+  return null
+}
+
+export async function atualizarNota(id: string, dados: Partial<Nota>) {
+  const docRef = doc(db, 'notas', id)
+  await updateDoc(docRef, {
+    ...dados,
+    atualizadoEm: Timestamp.now(),
+  })
+}
+
+export async function excluirNota(id: string) {
+  const docRef = doc(db, 'notas', id)
+  await deleteDoc(docRef)
+}
+
+export async function listarNotasPaginado(
+  usuarioId: string,
+  qtd = 20,
+  cursor?: QueryDocumentSnapshot | null
+): Promise<Paginado<Nota>> {
+  const snapshot = await getDocs(basePaginado('notas', usuarioId, qtd, cursor))
+  const itens = snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Nota)
+    .sort((a, b) => paraMillis(b.atualizadoEm) - paraMillis(a.atualizadoEm))
+  return { itens, proximoCursor: snapshot.docs.at(-1) ?? null }
+}
+
+// Arquivos
+function arrayBufferParaBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binaria = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binaria += String.fromCharCode(bytes[i])
+  }
+  return btoa(binaria)
+}
+
+async function arquivoParaDataUrl(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer()
+  const base64 = arrayBufferParaBase64(buffer)
+  return `data:${file.type || 'application/octet-stream'};base64,${base64}`
+}
+
+export async function uploadArquivo(
+  usuarioId: string,
+  file: File,
+  vinculo?: VinculoArquivo
+) {
+  if (file.size > TAMANHO_MAXIMO_ARQUIVO_BYTES) {
+    throw new Error('Arquivo acima do limite de tamanho.')
+  }
+
+  const dados = await arquivoParaDataUrl(file)
+
+  const docRef = await addDoc(collection(db, 'arquivos'), {
+    usuarioId,
+    nome: file.name,
+    tipo: file.type || 'application/octet-stream',
+    tamanho: file.size,
+    dados,
+    ...(vinculo ? { vinculo } : {}),
+    criadoEm: Timestamp.now(),
+  })
+  return docRef.id
+}
+
+export async function listarArquivos(usuarioId: string) {
+  const q = query(
+    collection(db, 'arquivos'),
+    where('usuarioId', '==', usuarioId)
+  )
+  const snapshot = await getDocs(q)
+  return snapshot.docs
+    .map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() }) as Arquivo)
+    .sort((a: Arquivo, b: Arquivo) => paraMillis(b.criadoEm) - paraMillis(a.criadoEm))
+}
+
+export async function atualizarArquivo(
+  id: string,
+  dados: { nome?: string; vinculo?: VinculoArquivo | null }
+) {
+  const docRef = doc(db, 'arquivos', id)
+  const payload: Record<string, unknown> = {}
+  if (dados.nome !== undefined) payload.nome = dados.nome
+  if (dados.vinculo === null) payload.vinculo = deleteField()
+  else if (dados.vinculo !== undefined) payload.vinculo = dados.vinculo
+  await updateDoc(docRef, payload)
+}
+
+export async function vincularArquivoANota(arquivoId: string, notaId: string) {
+  const docRef = doc(db, 'arquivos', arquivoId)
+  await updateDoc(docRef, { vinculo: { tipo: 'nota', id: notaId } })
+}
+
+export async function excluirArquivo(id: string) {
+  const docRef = doc(db, 'arquivos', id)
+  await deleteDoc(docRef)
+}
+
+export async function listarArquivosPaginado(
+  usuarioId: string,
+  qtd = 20,
+  cursor?: QueryDocumentSnapshot | null
+): Promise<Paginado<Arquivo>> {
+  const snapshot = await getDocs(basePaginado('arquivos', usuarioId, qtd, cursor))
+  const itens = snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Arquivo)
+    .sort((a, b) => paraMillis(b.criadoEm) - paraMillis(a.criadoEm))
   return { itens, proximoCursor: snapshot.docs.at(-1) ?? null }
 }
