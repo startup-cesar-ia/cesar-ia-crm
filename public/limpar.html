@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Limpando o CRM…</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f4f1ea;
+      color: #1a1c20;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      padding: 24px;
+    }
+    .card {
+      max-width: 420px;
+      background: #fff;
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 16px 40px rgba(26, 28, 32, 0.08);
+    }
+    h1 { font-size: 20px; margin: 0 0 8px; }
+    p { color: #8a8f98; margin: 0; font-size: 15px; }
+    .spinner {
+      width: 36px; height: 36px; margin: 0 auto 18px;
+      border: 3px solid #ece7dc; border-top-color: #ff5c00;
+      border-radius: 50%; animation: girar 0.8s linear infinite;
+    }
+    @keyframes girar { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner" id="spinner"></div>
+    <h1>Limpando o cache do CRM…</h1>
+    <p id="msg">Aguarde alguns segundos, isso é automático.</p>
+  </div>
+  <script>
+    (async function () {
+      try {
+        if ('serviceWorker' in navigator) {
+          var registros = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registros.map(function (r) { return r.unregister(); }));
+        }
+        if ('caches' in window) {
+          var chaves = await caches.keys();
+          await Promise.all(chaves.map(function (k) { return caches.delete(k); }));
+        }
+      } catch (e) {
+        /* segue mesmo se algo falhar */
+      }
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('msg').textContent = 'Tudo limpo! Abrindo o CRM…';
+      setTimeout(function () {
+        window.location.replace('/?atualizado=' + Date.now());
+      }, 900);
+    })();
+  </script>
+</body>
+</html>
