@@ -7,7 +7,8 @@ import { criarCliente } from '@/lib/firebase-services'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { ArrowLeft, Save } from 'lucide-react'
+import { avaliarCompletude } from '@/lib/completude'
+import { ArrowLeft, CircleDashed, Save } from 'lucide-react'
 import Link from 'next/link'
 
 export default function NovoClientePage() {
@@ -57,13 +58,18 @@ export default function NovoClientePage() {
     setErro('')
 
     if (!formData.nome.trim()) {
-      setErro('Nome é obrigatório')
+      setErro('Informe o nome do cliente.')
+      return
+    }
+
+    if (!formData.telefone.trim()) {
+      setErro('Informe o telefone do cliente.')
       return
     }
 
     const user = auth.currentUser
     if (!user) {
-      setErro('Usuário não autenticado')
+      setErro('Usuário não autenticado.')
       return
     }
 
@@ -81,11 +87,15 @@ export default function NovoClientePage() {
       })
       router.push('/clientes')
     } catch {
-      setErro('Erro ao salvar cliente')
+      setErro('Não foi possível salvar o cliente. Verifique sua conexão e tente novamente.')
     } finally {
       setSalvando(false)
     }
   }
+
+  const faltantesOpcionais = avaliarCompletude('cliente', formData).faltantes.filter(
+    (campo) => campo !== 'Nome' && campo !== 'Telefone'
+  )
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -120,7 +130,7 @@ export default function NovoClientePage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Email
+                  Email (opcional)
                 </label>
                 <Input
                   name="email"
@@ -133,13 +143,14 @@ export default function NovoClientePage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Telefone
+                  Telefone *
                 </label>
                 <Input
                   name="telefone"
                   value={formData.telefone}
                   onChange={handleChange}
                   placeholder="(11) 99999-9999"
+                  required
                 />
               </div>
             </div>
@@ -147,7 +158,7 @@ export default function NovoClientePage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Empresa
+                  Empresa (opcional)
                 </label>
                 <Input
                   name="empresa"
@@ -159,7 +170,7 @@ export default function NovoClientePage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Cargo
+                  Cargo (opcional)
                 </label>
                 <Input
                   name="cargo"
@@ -172,7 +183,7 @@ export default function NovoClientePage() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
-                Tags
+                Tags (opcional)
               </label>
               <Input
                 value={tagInput}
@@ -203,7 +214,7 @@ export default function NovoClientePage() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
-                Notas
+                Notas (opcional)
               </label>
               <textarea
                 name="notas"
@@ -215,6 +226,14 @@ export default function NovoClientePage() {
             </div>
 
             {erro && <p className="text-sm text-red-500">{erro}</p>}
+
+            {!erro && faltantesOpcionais.length > 0 && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CircleDashed className="h-3.5 w-3.5" aria-hidden />
+                Você pode salvar como provisório e completar depois. Faltando:{' '}
+                {faltantesOpcionais.join(', ')}.
+              </p>
+            )}
 
             <div className="flex gap-4 pt-4">
               <Link href="/clientes" className="flex-1">

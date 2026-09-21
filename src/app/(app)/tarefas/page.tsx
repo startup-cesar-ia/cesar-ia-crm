@@ -18,8 +18,10 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Card, CardContent } from '@/components/ui/card'
+import { CompletenessBadge } from '@/components/completude/completeness-badge'
 import { Plus, Trash2, Edit, AlertCircle, Clock, CheckCircle } from 'lucide-react'
 import { formatarData } from '@/lib/date'
+import { avaliarCompletude } from '@/lib/completude'
 import { combinaTexto, useSearch } from '@/lib/search-context'
 import { usePaginado } from '@/lib/use-paginado'
 
@@ -315,6 +317,10 @@ export default function TarefasPage() {
                     const cliente = clientes.find(
                       (c) => c.id === tarefa.clienteId
                     )
+                    const faltantes = avaliarCompletude(
+                      'tarefa',
+                      tarefa
+                    ).faltantes
                     return (
                       <Card
                         key={tarefa.id}
@@ -335,6 +341,11 @@ export default function TarefasPage() {
                                 <p className="mb-2 line-clamp-2 text-xs text-muted-foreground">
                                   {tarefa.descricao}
                                 </p>
+                              )}
+                              {faltantes.length > 0 && (
+                                <div className="mb-1">
+                                  <CompletenessBadge faltantes={faltantes} />
+                                </div>
                               )}
                               {cliente && (
                                 <p className="mb-1 text-xs text-muted-foreground">

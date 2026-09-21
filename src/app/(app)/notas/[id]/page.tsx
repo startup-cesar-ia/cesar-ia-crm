@@ -18,6 +18,8 @@ import { Spinner } from '@/components/ui/spinner'
 import { NotaEditor } from '@/components/notas/editor'
 import { UploadArquivo } from '@/components/arquivos/upload'
 import { PreviewArquivo } from '@/components/arquivos/preview'
+import { CompletenessBanner } from '@/components/completude/completeness-banner'
+import { avaliarCompletude } from '@/lib/completude'
 import { ArrowLeft, Save, Check, Paperclip, X, FileText } from 'lucide-react'
 import DOMPurify from 'dompurify'
 
@@ -35,6 +37,7 @@ export default function NotaDetalhePage() {
   const [anexos, setAnexos] = useState<Arquivo[]>([])
   const [anexoPreview, setAnexoPreview] = useState<Arquivo | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const editorRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     return () => {
@@ -120,6 +123,10 @@ export default function NotaDetalhePage() {
     )
   }
 
+  const faltantesNota = nova
+    ? []
+    : avaliarCompletude('nota', { titulo, conteudo }).faltantes
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -136,6 +143,13 @@ export default function NotaDetalhePage() {
         </Button>
       </div>
 
+      <CompletenessBanner
+        faltantes={faltantesNota}
+        onCompletar={() =>
+          editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      />
+
       {salvo && (
         <p className="flex items-center gap-1.5 text-sm text-success">
           <Check className="h-4 w-4" /> Nota salva com sucesso.
@@ -150,7 +164,9 @@ export default function NotaDetalhePage() {
         aria-label="Título da nota"
       />
 
-      <NotaEditor conteudo={conteudo} onChange={setConteudo} />
+      <div ref={editorRef}>
+        <NotaEditor conteudo={conteudo} onChange={setConteudo} />
+      </div>
 
       {!nova && (
         <div className="rounded-xl border border-border bg-card p-5">

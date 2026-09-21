@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { CompletenessBanner } from '@/components/completude/completeness-banner'
+import { CampoVazio } from '@/components/completude/campo-vazio'
+import { avaliarCompletude } from '@/lib/completude'
 import { ArrowLeft, Save, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -86,7 +89,12 @@ export default function ClienteDetailPage() {
     setErro('')
 
     if (!formData.nome.trim()) {
-      setErro('Nome é obrigatório')
+      setErro('Informe o nome do cliente.')
+      return
+    }
+
+    if (!formData.telefone.trim()) {
+      setErro('Informe o telefone do cliente.')
       return
     }
 
@@ -104,7 +112,7 @@ export default function ClienteDetailPage() {
       setEditando(false)
       carregarCliente()
     } catch {
-      setErro('Erro ao salvar cliente')
+      setErro('Não foi possível salvar. Verifique sua conexão e tente novamente.')
     } finally {
       setSalvando(false)
     }
@@ -134,6 +142,8 @@ export default function ClienteDetailPage() {
       </div>
     )
   }
+
+  const faltantes = avaliarCompletude('cliente', cliente).faltantes
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -173,6 +183,11 @@ export default function ClienteDetailPage() {
         </div>
       </div>
 
+      <CompletenessBanner
+        faltantes={faltantes}
+        onCompletar={() => setEditando(true)}
+      />
+
       <Card>
         <CardContent className="pt-6">
           {editando ? (
@@ -193,7 +208,7 @@ export default function ClienteDetailPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    Email
+                    Email (opcional)
                   </label>
                   <Input
                     name="email"
@@ -206,13 +221,14 @@ export default function ClienteDetailPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    Telefone
+                    Telefone *
                   </label>
                   <Input
                     name="telefone"
                     value={formData.telefone}
                     onChange={handleChange}
                     placeholder="(11) 99999-9999"
+                    required
                   />
                 </div>
               </div>
@@ -220,7 +236,7 @@ export default function ClienteDetailPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    Empresa
+                    Empresa (opcional)
                   </label>
                   <Input
                     name="empresa"
@@ -232,7 +248,7 @@ export default function ClienteDetailPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    Cargo
+                    Cargo (opcional)
                   </label>
                   <Input
                     name="cargo"
@@ -245,7 +261,7 @@ export default function ClienteDetailPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Tags
+                  Tags (opcional)
                 </label>
                 <Input
                   value={tagInput}
@@ -276,7 +292,7 @@ export default function ClienteDetailPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Notas
+                  Notas (opcional)
                 </label>
                 <textarea
                   name="notas"
@@ -316,22 +332,38 @@ export default function ClienteDetailPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="text-foreground">{cliente.email || '-'}</p>
+                  {cliente.email ? (
+                    <p className="text-foreground">{cliente.email}</p>
+                  ) : (
+                    <CampoVazio />
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Telefone</p>
-                  <p className="text-foreground">{cliente.telefone || '-'}</p>
+                  {cliente.telefone ? (
+                    <p className="text-foreground">{cliente.telefone}</p>
+                  ) : (
+                    <CampoVazio />
+                  )}
                 </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <p className="text-sm text-muted-foreground">Empresa</p>
-                  <p className="text-foreground">{cliente.empresa || '-'}</p>
+                  {cliente.empresa ? (
+                    <p className="text-foreground">{cliente.empresa}</p>
+                  ) : (
+                    <CampoVazio />
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Cargo</p>
-                  <p className="text-foreground">{cliente.cargo || '-'}</p>
+                  {cliente.cargo ? (
+                    <p className="text-foreground">{cliente.cargo}</p>
+                  ) : (
+                    <CampoVazio />
+                  )}
                 </div>
               </div>
 

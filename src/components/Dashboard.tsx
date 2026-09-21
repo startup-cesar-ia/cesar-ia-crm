@@ -12,13 +12,15 @@ import {
   listarArquivos,
 } from '@/lib/firebase-services'
 import { Cliente, Agendamento, Tarefa, Transacao, Nota, Arquivo } from '@/types'
-import { Users, CheckSquare, Calendar, AlertCircle, ChevronRight, Wallet, TrendingUp, TrendingDown, StickyNote, FolderOpen } from 'lucide-react'
+import { Users, CheckSquare, Calendar, AlertCircle, ChevronRight, Wallet, TrendingUp, TrendingDown, StickyNote, FolderOpen, CircleDashed, BadgeCheck } from 'lucide-react'
 import { format, subMonths, startOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Saudacao } from '@/components/dashboard/saudacao'
+import { avaliarCompletude } from '@/lib/completude'
 import { paraDate, formatarData } from '@/lib/date'
 
 interface DashboardData {
@@ -116,6 +118,14 @@ export default function Dashboard() {
         .reduce((s, t) => s + t.valor, 0)
       return { mes: format(mes, 'MMM', { locale: ptBR }), receitas, despesas }
     })
+  }, [dados])
+
+  const qualidade = useMemo(() => {
+    if (!dados) return { incompletos: 0, total: 0 }
+    const incompletos = dados.clientes.filter(
+      (c) => !avaliarCompletude('cliente', c).completa
+    ).length
+    return { incompletos, total: dados.clientes.length }
   }, [dados])
 
   const atividade = useMemo(() => {
@@ -248,6 +258,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <Saudacao />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpiCards.map((kpi) => (
           <Card key={kpi.label} padded className="cursor-pointer hover:shadow-soft-lg">
@@ -267,6 +279,48 @@ export default function Dashboard() {
           </Card>
         ))}
       </div>
+
+      <Card padded>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                qualidade.incompletos > 0
+                  ? 'bg-warning/15 text-warning-deep'
+                  : 'bg-success/10 text-success'
+              }`}
+            >
+              {qualidade.incompletos > 0 ? (
+                <CircleDashed className="h-5 w-5" />
+              ) : (
+                <BadgeCheck className="h-5 w-5" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                Qualidade dos dados
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {qualidade.total === 0
+                  ? 'Cadastre clientes para acompanhar a completude.'
+                  : qualidade.incompletos > 0
+                    ? `${qualidade.incompletos} de ${qualidade.total} clientes com cadastro incompleto.`
+                    : 'Todos os clientes com cadastro completo.'}
+              </p>
+            </div>
+          </div>
+          {qualidade.incompletos > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => router.push('/clientes')}
+            >
+              Revisar clientes
+            </Button>
+          )}
+        </div>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">

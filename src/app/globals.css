@@ -31,6 +31,8 @@
   --color-success-foreground: #FFFFFF;
   --color-warning: #F59E0B;
   --color-warning-foreground: #FFFFFF;
+  /* Texto com contraste sobre superfícies de aviso suaves (warning/10) */
+  --color-warning-deep: #B45309;
   --color-info: #2563EB;
   --color-info-foreground: #FFFFFF;
 
@@ -207,6 +209,7 @@
   --color-accent-foreground: #F4F1EA;
   --color-border: #2A2E38;
   --color-input: #2A2E38;
+  --color-warning-deep: #FBBF24;
   --color-sidebar: #0D0F14;
   --color-sidebar-foreground: #F4F1EA;
   --color-sidebar-muted: #9AA0AA;

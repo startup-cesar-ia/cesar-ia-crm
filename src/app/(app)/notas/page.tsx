@@ -7,9 +7,11 @@ import { listarNotasPaginado, excluirNota } from '@/lib/firebase-services'
 import { Nota } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { CompletenessBadge } from '@/components/completude/completeness-badge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Plus, Trash2, FileText } from 'lucide-react'
 import { formatarData } from '@/lib/date'
+import { avaliarCompletude } from '@/lib/completude'
 import { combinaTexto, useSearch } from '@/lib/search-context'
 import { usePaginado } from '@/lib/use-paginado'
 import { QueryDocumentSnapshot } from 'firebase/firestore'
@@ -77,34 +79,40 @@ export default function NotasPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtradas.map((nota) => (
-            <Card key={nota.id} className="transition-colors hover:border-primary/40">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-2">
-                  <Link href={`/notas/${nota.id}`} className="min-w-0 flex-1">
-                    <h3 className="truncate text-base font-semibold text-foreground">
-                      {nota.titulo}
-                    </h3>
-                    <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
-                      {htmlParaTexto(nota.conteudo) || 'Sem conteúdo'}
-                    </p>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      Atualizada em {formatarData(nota.atualizadoEm)}
-                    </p>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
-                    aria-label="Excluir nota"
-                    onClick={() => setExcluindoId(nota.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {filtradas.map((nota) => {
+            const faltantes = avaliarCompletude('nota', nota).faltantes
+            return (
+              <Card key={nota.id} className="transition-colors hover:border-primary/40">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-2">
+                    <Link href={`/notas/${nota.id}`} className="min-w-0 flex-1">
+                      <h3 className="truncate text-base font-semibold text-foreground">
+                        {nota.titulo}
+                      </h3>
+                      <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
+                        {htmlParaTexto(nota.conteudo) || 'Sem conteúdo'}
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          Atualizada em {formatarData(nota.atualizadoEm)}
+                        </p>
+                        <CompletenessBadge faltantes={faltantes} />
+                      </div>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                      aria-label="Excluir nota"
+                      onClick={() => setExcluindoId(nota.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 

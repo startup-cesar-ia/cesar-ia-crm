@@ -17,12 +17,14 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { CompletenessBadge } from '@/components/completude/completeness-badge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Calendar, Trash2, Edit, List, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatarData } from '@/lib/date'
+import { avaliarCompletude } from '@/lib/completude'
 import { combinaTexto, useSearch } from '@/lib/search-context'
 import { usePaginado } from '@/lib/use-paginado'
 import { DayPicker } from 'react-day-picker'
@@ -226,7 +228,7 @@ export default function AgendamentosPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="horaInicio">Hora Início *</Label>
+                  <Label htmlFor="horaInicio">Hora Início</Label>
                   <Input
                     id="horaInicio"
                     type="time"
@@ -234,11 +236,10 @@ export default function AgendamentosPage() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, horaInicio: e.target.value }))
                     }
-                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="horaFim">Hora Fim *</Label>
+                  <Label htmlFor="horaFim">Hora Fim</Label>
                   <Input
                     id="horaFim"
                     type="time"
@@ -246,7 +247,6 @@ export default function AgendamentosPage() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, horaFim: e.target.value }))
                     }
-                    required
                   />
                 </div>
               </div>
@@ -352,6 +352,10 @@ export default function AgendamentosPage() {
                 const cliente = clientes.find(
                   (c) => c.id === agendamento.clienteId
                 )
+                const faltantes = avaliarCompletude(
+                  'agendamento',
+                  agendamento
+                ).faltantes
                 return (
                   <Card key={agendamento.id}>
                     <CardContent className="flex items-start justify-between gap-4 p-6">
@@ -363,6 +367,7 @@ export default function AgendamentosPage() {
                           <Badge variant={statusBadge[agendamento.status]}>
                             {statusLabel[agendamento.status]}
                           </Badge>
+                          <CompletenessBadge faltantes={faltantes} />
                         </div>
 
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
