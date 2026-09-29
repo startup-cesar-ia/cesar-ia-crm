@@ -97,6 +97,13 @@
   }
 }
 
+/* Fundo de boot: evita flash claro entre a splash nativa e o app montar.
+   A classe é adicionada antes da hidratação e removida pelo AuthGate. */
+html.crm-boot,
+html.crm-boot body {
+  background: var(--color-primary);
+}
+
 /* Editor de notas (TipTap/ProseMirror) */
 .nota-conteudo .ProseMirror {
   min-height: 300px;

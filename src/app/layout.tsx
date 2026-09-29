@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { RegisterSW } from '@/components/pwa/register-sw'
+import { AuthProvider } from '@/lib/auth-context'
+import { AuthGate } from '@/components/auth/auth-gate'
 import './globals.css'
 
 const inter = Inter({
@@ -32,13 +34,15 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem('crm-tema')==='dark'){document.documentElement.classList.add('dark')}}catch(e){}`,
+            __html: `try{if(localStorage.getItem('crm-tema')==='dark'){document.documentElement.classList.add('dark')}document.documentElement.classList.add('crm-boot')}catch(e){}`,
           }}
         />
       </head>
       <body>
         <RegisterSW />
-        {children}
+        <AuthProvider>
+          <AuthGate>{children}</AuthGate>
+        </AuthProvider>
       </body>
     </html>
   )

@@ -2,13 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
 import { salvarUsuario } from '@/lib/firebase-services'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import { Spinner } from '@/components/ui/spinner'
 import { SearchProvider } from '@/lib/search-context'
+import { useAuth } from '@/lib/auth-context'
 
 const pageMeta: Record<string, { title: string; description: string }> = {
   '/dashboard': {
@@ -52,27 +51,27 @@ export default function AppLayout({
 }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [loading, setLoading] = useState(true)
+  const { status, user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const prevPathnameRef = useRef(pathname)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push('/login')
-      } else {
-        salvarUsuario({
-          uid: user.uid,
-          nome: user.displayName || user.email?.split('@')[0] || 'Usuário',
-          email: user.email || '',
-          photoURL: user.photoURL || undefined,
-        })
-        setLoading(false)
-      }
+    if (status !== 'authenticated' || !user) return
+    salvarUsuario({
+      uid: user.uid,
+      nome: user.displayName || user.email?.split('@')[0] || 'Usuário',
+      email: user.email || '',
+      photoURL: user.photoURL || undefined,
     })
+  }, [status, user])
 
-    return () => unsubscribe()
-  }, [router])
+  // Guard de rota: só redireciona com a decisão final de "deslogado".
+  // Em "loading" nunca redireciona.
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/login')
+    }
+  }, [status, router])
 
   useEffect(() => {
     if (prevPathnameRef.current !== pathname) {
@@ -81,10 +80,13 @@ export default function AppLayout({
     }
   }, [pathname])
 
-  if (loading) {
+  if (status !== 'authenticated') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Spinner size={36} />
+      <div className="flex min-h-screen items-center justify-center bg-primary">
+        <Spinner
+          size={36}
+          className="border-primary-foreground/30 border-t-primary-foreground"
+        />
       </div>
     )
   }

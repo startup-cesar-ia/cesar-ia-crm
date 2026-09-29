@@ -1,11 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { auth } from '@/lib/firebase'
-import { User } from 'firebase/auth'
 import { Search, Menu, ArrowLeft } from 'lucide-react'
 import { useSearch } from '@/lib/search-context'
+import { useAuth } from '@/lib/auth-context'
 import { Notifications } from '@/components/layout/Notifications'
 import { InstallButton } from '@/components/pwa/install-button'
 
@@ -14,14 +13,9 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenSidebar }: HeaderProps) {
-  const [user, setUser] = useState<User | null>(null)
+  const { user } = useAuth()
   const { query, setQuery } = useSearch()
   const [buscaMobile, setBuscaMobile] = useState(false)
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((current) => setUser(current))
-    return () => unsubscribe()
-  }, [])
 
   const nome = user?.displayName || user?.email?.split('@')[0] || 'Usuário'
   const email = user?.email || ''

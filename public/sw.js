@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cesar-ia-crm-v2'
+const CACHE_NAME = 'cesar-ia-crm-v3'
 const urlsToCache = ['/', '/login', '/dashboard']
 
 self.addEventListener('install', (event) => {
