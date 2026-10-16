@@ -13,7 +13,7 @@ import {
 } from '@/lib/firebase-services'
 import { Arquivo } from '@/types'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
 import { NotaEditor } from '@/components/notas/editor'
 import { UploadArquivo } from '@/components/arquivos/upload'
@@ -128,12 +128,12 @@ export default function NotaDetalhePage() {
     : avaliarCompletude('nota', { titulo, conteudo }).faltantes
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <Button variant="outline" onClick={() => router.push('/notas')}>
+    <div className="min-w-0 max-w-full space-y-4">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+        <Button variant="outline" onClick={() => router.push('/notas')} className="shrink-0">
           <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
         </Button>
-        <Button onClick={salvar} disabled={salvando}>
+        <Button onClick={salvar} disabled={salvando} className="shrink-0">
           {salvo ? (
             <Check className="mr-2 h-4 w-4" />
           ) : (
@@ -156,22 +156,23 @@ export default function NotaDetalhePage() {
         </p>
       )}
 
-      <Input
+      <Textarea
         value={titulo}
         onChange={(e) => setTitulo(e.target.value)}
         placeholder="Título da nota"
-        className="h-12 border-transparent bg-transparent px-0 text-2xl font-semibold shadow-none focus-visible:ring-0"
+        rows={1}
+        className="h-auto min-h-12 resize-none overflow-hidden border-transparent bg-transparent px-0 text-2xl font-semibold break-words shadow-none focus-visible:ring-0 [field-sizing:content]"
         aria-label="Título da nota"
       />
 
-      <div ref={editorRef}>
+      <div ref={editorRef} className="min-w-0 max-w-full">
         <NotaEditor conteudo={conteudo} onChange={setConteudo} />
       </div>
 
       {!nova && (
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-border bg-card p-5">
+          <div className="mb-3 flex min-w-0 items-center justify-between gap-2">
+            <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
               <Paperclip className="h-4 w-4" /> Anexos
             </h2>
             <UploadArquivo onFiles={anexar} rotulo="Anexar arquivo" />

@@ -105,10 +105,27 @@ html.crm-boot body {
 }
 
 /* Editor de notas (TipTap/ProseMirror) */
+.nota-conteudo {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 .nota-conteudo .ProseMirror {
   min-height: 300px;
   padding: 1rem;
   outline: none;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.nota-conteudo .ProseMirror img,
+.nota-conteudo .ProseMirror table {
+  max-width: 100%;
+  height: auto;
+}
+.nota-conteudo .ProseMirror pre {
+  max-width: 100%;
 }
 .nota-conteudo .ProseMirror:focus {
   outline: none;

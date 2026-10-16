@@ -64,7 +64,7 @@ export function NotaEditor({ conteudo, onChange }: NotaEditorProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-border bg-card">
       <div className="flex flex-wrap items-center gap-1 border-b border-border p-2">
         <Botao
           ativo={editor.isActive('bold')}
