@@ -17,7 +17,7 @@ export function Tooltip({ conteudo, children, className }: TooltipProps) {
   const id = React.useId()
 
   return (
-    <span className="group relative inline-flex">
+    <span className="group relative inline-flex max-w-full">
       <span
         tabIndex={0}
         aria-describedby={id}
@@ -29,7 +29,7 @@ export function Tooltip({ conteudo, children, className }: TooltipProps) {
         id={id}
         role="tooltip"
         className={cn(
-          'pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium text-background opacity-0 shadow-soft-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100',
+          'pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 hidden max-w-[calc(100vw-2rem)] -translate-x-1/2 whitespace-normal break-words rounded-lg bg-foreground px-2.5 py-1 text-center text-xs font-medium text-background opacity-0 shadow-soft-lg transition-opacity duration-150 group-hover:block group-focus-within:block group-hover:opacity-100 group-focus-within:opacity-100 sm:whitespace-nowrap',
           className
         )}
       >

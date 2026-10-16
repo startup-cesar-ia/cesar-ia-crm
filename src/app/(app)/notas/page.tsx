@@ -57,7 +57,7 @@ export default function NotasPage() {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6">
       <div className="flex items-center justify-end">
         <Link href="/notas/nova">
           <Button>
@@ -78,25 +78,25 @@ export default function NotasPage() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtradas.map((nota) => {
             const faltantes = avaliarCompletude('nota', nota).faltantes
             return (
-              <Card key={nota.id} className="transition-colors hover:border-primary/40">
+              <Card key={nota.id} className="min-w-0 max-w-full overflow-hidden transition-colors hover:border-primary/40">
                 <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-2">
-                    <Link href={`/notas/${nota.id}`} className="min-w-0 flex-1">
-                      <h3 className="truncate text-base font-semibold text-foreground">
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <Link href={`/notas/${nota.id}`} className="min-w-0 max-w-full flex-1">
+                      <h3 className="line-clamp-2 break-words text-base font-semibold text-foreground">
                         {nota.titulo}
                       </h3>
-                      <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
+                      <p className="mt-1 line-clamp-3 min-w-0 break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
                         {htmlParaTexto(nota.conteudo) || 'Sem conteúdo'}
                       </p>
-                      <div className="mt-3 flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground">
+                      <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className="min-w-0 break-words text-xs text-muted-foreground">
                           Atualizada em {formatarData(nota.atualizadoEm)}
                         </p>
-                        <CompletenessBadge faltantes={faltantes} />
+                        <CompletenessBadge faltantes={faltantes} className="shrink-0" />
                       </div>
                     </Link>
                     <Button
