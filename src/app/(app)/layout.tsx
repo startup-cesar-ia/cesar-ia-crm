@@ -30,6 +30,10 @@ const pageMeta: Record<string, { title: string; description: string }> = {
     title: 'Notas',
     description: 'Registre ideias, textos e documentos.',
   },
+  '/skills': {
+    title: 'Biblioteca de Skills',
+    description: 'Guarde links e saiba para que cada skill serve.',
+  },
   '/arquivos': {
     title: 'Arquivos',
     description: 'Guarde e abra seus arquivos em um só lugar.',

@@ -49,6 +49,13 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
+    match /skills/{id} {
+      allow read: if isOwner();
+      allow create: if isOwnerForCreate();
+      allow update: if isOwner() && isOwnerForCreate();
+      allow delete: if isOwner();
+    }
+
     match /arquivos/{id} {
       allow read: if isOwner();
       allow create: if isOwnerForCreate();

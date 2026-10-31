@@ -24,6 +24,7 @@ import {
   Transacao,
   Usuario,
   Nota,
+  Skill,
   Arquivo,
   VinculoArquivo,
   TAMANHO_MAXIMO_ARQUIVO_BYTES,
@@ -350,6 +351,52 @@ export async function listarNotasPaginado(
   const snapshot = await getDocs(basePaginado('notas', usuarioId, qtd, cursor))
   const itens = snapshot.docs
     .map((d) => ({ id: d.id, ...d.data() }) as Nota)
+    .sort((a, b) => paraMillis(b.atualizadoEm) - paraMillis(a.atualizadoEm))
+  return { itens, proximoCursor: snapshot.docs.at(-1) ?? null }
+}
+
+// Skills
+export async function criarSkill(
+  skill: Omit<Skill, 'id' | 'criadoEm' | 'atualizadoEm'>
+) {
+  const docRef = await addDoc(collection(db, 'skills'), {
+    ...semIndefinidos(skill),
+    criadoEm: Timestamp.now(),
+    atualizadoEm: Timestamp.now(),
+  })
+  return docRef.id
+}
+
+export async function buscarSkill(id: string) {
+  const docRef = doc(db, 'skills', id)
+  const docSnap = await getDoc(docRef)
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as Skill
+  }
+  return null
+}
+
+export async function atualizarSkill(id: string, dados: Partial<Skill>) {
+  const docRef = doc(db, 'skills', id)
+  await updateDoc(docRef, {
+    ...semIndefinidos(dados),
+    atualizadoEm: Timestamp.now(),
+  })
+}
+
+export async function excluirSkill(id: string) {
+  const docRef = doc(db, 'skills', id)
+  await deleteDoc(docRef)
+}
+
+export async function listarSkillsPaginado(
+  usuarioId: string,
+  qtd = 20,
+  cursor?: QueryDocumentSnapshot | null
+): Promise<Paginado<Skill>> {
+  const snapshot = await getDocs(basePaginado('skills', usuarioId, qtd, cursor))
+  const itens = snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Skill)
     .sort((a, b) => paraMillis(b.atualizadoEm) - paraMillis(a.atualizadoEm))
   return { itens, proximoCursor: snapshot.docs.at(-1) ?? null }
 }

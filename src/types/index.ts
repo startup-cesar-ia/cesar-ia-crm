@@ -76,6 +76,16 @@ export interface Nota {
   atualizadoEm: Timestamp
 }
 
+export interface Skill {
+  id: string
+  usuarioId: string
+  url: string
+  titulo: string
+  descricao?: string
+  criadoEm: Timestamp
+  atualizadoEm: Timestamp
+}
+
 export type TipoVinculo = 'nota' | 'cliente' | 'tarefa'
 
 export interface VinculoArquivo {
