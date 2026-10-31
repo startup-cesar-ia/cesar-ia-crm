@@ -367,8 +367,18 @@ export async function criarSkill(
   return docRef.id
 }
 
-export async function buscarSkill(id: string) {
-  const docRef = doc(db, 'skills', id)
+export async function listarSkills(usuarioId: string) {
+  const q = query(
+    collection(db, 'skills'),
+    where('usuarioId', '==', usuarioId)
+  )
+  const snapshot = await getDocs(q)
+  return snapshot.docs
+    .map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() }) as Skill)
+    .sort((a: Skill, b: Skill) => paraMillis(b.atualizadoEm) - paraMillis(a.atualizadoEm))
+}
+
+export async function buscarSkill(id: string) {  const docRef = doc(db, 'skills', id)
   const docSnap = await getDoc(docRef)
   if (docSnap.exists()) {
     return { id: docSnap.id, ...docSnap.data() } as Skill

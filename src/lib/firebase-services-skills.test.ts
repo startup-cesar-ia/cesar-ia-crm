@@ -32,6 +32,7 @@ import {
   atualizarSkill,
   excluirSkill,
   buscarSkill,
+  listarSkills,
   listarSkillsPaginado,
 } from './firebase-services'
 
@@ -82,6 +83,29 @@ describe('firebase-services: skills', () => {
       data: () => ({ titulo: 'Skill' }),
     } as never)
     expect((await buscarSkill('s1'))?.titulo).toBe('Skill')
+  })
+
+  it('listarSkills ordena por atualizadoEm desc', async () => {
+    vi.mocked(getDocs).mockResolvedValue({
+      docs: [
+        {
+          id: 'a',
+          data: () => ({
+            titulo: 'Antiga',
+            atualizadoEm: { toDate: () => new Date(2023, 0, 1) },
+          }),
+        },
+        {
+          id: 'b',
+          data: () => ({
+            titulo: 'Recente',
+            atualizadoEm: { toDate: () => new Date(2024, 0, 1) },
+          }),
+        },
+      ],
+    } as never)
+    const skills = await listarSkills('u1')
+    expect(skills[0].titulo).toBe('Recente')
   })
 
   it('listarSkillsPaginado ordena por atualizadoEm desc', async () => {

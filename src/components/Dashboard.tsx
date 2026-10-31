@@ -10,9 +10,10 @@ import {
   listarTransacoes,
   listarNotas,
   listarArquivos,
+  listarSkills,
 } from '@/lib/firebase-services'
-import { Cliente, Agendamento, Tarefa, Transacao, Nota, Arquivo } from '@/types'
-import { Users, CheckSquare, Calendar, AlertCircle, ChevronRight, Wallet, TrendingUp, TrendingDown, StickyNote, FolderOpen, CircleDashed, BadgeCheck } from 'lucide-react'
+import { Cliente, Agendamento, Tarefa, Transacao, Nota, Arquivo, Skill } from '@/types'
+import { Users, CheckSquare, Calendar, AlertCircle, ChevronRight, Wallet, TrendingUp, TrendingDown, StickyNote, FolderOpen, CircleDashed, BadgeCheck, Sparkles } from 'lucide-react'
 import { format, subMonths, startOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,6 +31,7 @@ interface DashboardData {
   transacoes: Transacao[]
   notas: Nota[]
   arquivos: Arquivo[]
+  skills: Skill[]
 }
 
 function formatarValor(valor: number) {
@@ -55,15 +57,16 @@ export default function Dashboard() {
     try {
       setLoading(true)
       setError(null)
-      const [clientes, tarefas, agendamentos, transacoes, notas, arquivos] = await Promise.all([
+      const [clientes, tarefas, agendamentos, transacoes, notas, arquivos, skills] = await Promise.all([
         listarClientes(user.uid),
         listarTarefas(user.uid),
         listarAgendamentos(user.uid),
         listarTransacoes(user.uid),
         listarNotas(user.uid),
         listarArquivos(user.uid),
+        listarSkills(user.uid),
       ])
-      setDados({ clientes, tarefas, agendamentos, transacoes, notas, arquivos })
+      setDados({ clientes, tarefas, agendamentos, transacoes, notas, arquivos, skills })
     } catch {
       setError('Erro ao carregar dados. Tente novamente.')
     } finally {
@@ -244,6 +247,14 @@ export default function Dashboard() {
           cor: 'text-warning',
           bg: 'bg-warning/10',
           href: '/notas',
+        },
+        {
+          label: 'Skills',
+          valor: String(dados?.skills.length ?? 0),
+          icon: <Sparkles className="h-5 w-5" />,
+          cor: 'text-primary',
+          bg: 'bg-primary/10',
+          href: '/skills',
         },
         {
           label: 'Arquivos',
