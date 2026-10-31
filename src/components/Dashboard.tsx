@@ -334,24 +334,24 @@ export default function Dashboard() {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="min-w-0 max-w-full lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <TrendingUp className="h-4 w-4 text-primary" />
               Receitas × Despesas (6 meses)
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-w-0 overflow-hidden">
             {grafico.every((m) => m.receitas === 0 && m.despesas === 0) ? (
               <EmptyState
                 title="Sem movimentações"
                 description="Registre transações para ver o gráfico."
               />
             ) : (
-              <div className="mt-4">
+              <div className="mt-4 min-w-0">
                 <svg
                   viewBox={`0 0 ${chartWidth} ${chartHeight + 30}`}
-                  className="w-full"
+                  className="block h-auto w-full max-w-full"
                   role="img"
                   aria-label="Gráfico de receitas e despesas dos últimos 6 meses"
                 >
