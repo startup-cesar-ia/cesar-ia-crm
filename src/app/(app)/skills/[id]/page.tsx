@@ -86,8 +86,8 @@ export default function SkillDetalhePage() {
     setErro('')
     setAviso('')
     const dados = await buscarMetadados(urlNormalizada)
-    if (dados?.titulo && !titulo.trim()) setTitulo(dados.titulo)
-    if (dados?.descricao && !descricao.trim()) setDescricao(dados.descricao)
+    if (dados?.titulo) setTitulo(dados.titulo)
+    if (dados?.descricao) setDescricao(dados.descricao)
     if (dados?.aviso) setAviso(dados.aviso)
     setBuscando(false)
   }

@@ -5,6 +5,7 @@ import {
   normalizarUrl,
   urlPermitida,
 } from '@/lib/skill-metadata'
+import { traduzirParaPortugues } from '@/lib/translate'
 
 export const runtime = 'nodejs'
 
@@ -91,8 +92,12 @@ export async function POST(request: Request) {
   }
 
   const metadados = extrairMetadados(html)
+  const [titulo, descricao] = await Promise.all([
+    traduzirParaPortugues(metadados.titulo),
+    traduzirParaPortugues(metadados.descricao),
+  ])
   return NextResponse.json({
-    titulo: metadados.titulo || hostDaUrl(url),
-    descricao: metadados.descricao,
+    titulo: titulo || hostDaUrl(url),
+    descricao,
   })
 }
